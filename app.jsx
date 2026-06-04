@@ -1,4 +1,4 @@
-// app.jsx — DYNAMO core: state, throttle momentum, craving, tap behavior, tweaks.
+// app.jsx — DYNAMO core: state, throttle momentum, craving, tap behavior.
 const { useState, useRef, useEffect, useCallback } = React;
 const D = window.DYNAMO;
 
@@ -6,8 +6,7 @@ const W = 440, H = 920;
 const KINDLE = [...new Set(window.TRUCKS.flatMap(t => [t.open, t.close]))].sort((a,b)=>a-b);
 
 function App() {
-  const TWK = { palette: "noir", emblem: "roundel", speed: true, momentum: true };
-  const [tweaks, setTweak] = window.useTweaks(TWK);
+  const tweaks = { palette: "noir", emblem: "roundel", speed: true, momentum: true };
 
   const [t, setT] = useState(12.0);
   const [day, setDay] = useState(0);
@@ -212,18 +211,6 @@ function App() {
         trucks={window.TRUCKS} onClose={() => setLedgerOpen(false)}
         onPick={(id) => { setLedgerOpen(false); onTapBody(id); }} onWatch={toggleWatch} />
 
-      <window.TweaksPanel>
-        <window.TweakSection label="Finish" />
-        <window.TweakRadio label="Palette" value={tweaks.palette}
-          options={["cream","noir","blueprint"]} onChange={(v)=>setTweak("palette",v)} />
-        <window.TweakRadio label="Emblem" value={tweaks.emblem}
-          options={["roundel","shield","gear"]} onChange={(v)=>setTweak("emblem",v)} />
-        <window.TweakSection label="Motion" />
-        <window.TweakToggle label="Energy / speed lines" value={tweaks.speed}
-          onChange={(v)=>setTweak("speed",v)} />
-        <window.TweakToggle label="Throttle momentum" value={tweaks.momentum}
-          onChange={(v)=>setTweak("momentum",v)} />
-      </window.TweaksPanel>
     </div>
   );
 }
