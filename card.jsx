@@ -15,10 +15,13 @@ function TruckCard({ truck, t, day, watched, onClose, onWatch, onGuide }) {
   const isWatched = watched.has(truck.id);
   const dirOf = (b) => D.compassDir(b);
 
+  const { sheetRef, dragStyle, gripHandlers } = window.useSwipeDismiss(onClose);
+
   return (
     <div className="card-scrim" onClick={onClose}>
-      <div className="card" onClick={(ev) => ev.stopPropagation()}>
+      <div className="card" ref={sheetRef} style={dragStyle} onClick={(ev) => ev.stopPropagation()}>
         <div className="card-step" />
+        <div className="card-grip" {...gripHandlers} aria-hidden="true"><span className="grip-pill" /></div>
         <div className="card-head">
           <div className={"card-badge" + (open ? " on" : "")}>
             <DGlyph name={truck.glyph} size={30} />

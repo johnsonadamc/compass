@@ -376,13 +376,21 @@
   .card {
     position: relative; width: 100%; background: var(--paper); color: var(--ink);
     border-top: 2px solid var(--ink); border-radius: 22px 22px 0 0;
-    padding: 22px 24px 30px; animation: dyn-rise .32s cubic-bezier(.2,.9,.25,1);
+    padding: 8px 24px 30px; animation: dyn-rise .32s cubic-bezier(.2,.9,.25,1);
     box-shadow: 0 -16px 50px rgba(0,0,0,0.4);
   }
   @keyframes dyn-rise { from { transform: translateY(100%); } }
   .card-step { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 120px; height: 7px; background: var(--verm); border-radius: 0 0 5px 5px; }
-  .card-grip { display: none; }
-  .card-head { display: flex; align-items: center; gap: 13px; margin-top: 6px; }
+  .card-grip {
+    display: flex; justify-content: center; align-items: center;
+    width: 100%; padding: 10px 0 4px; cursor: grab; touch-action: none;
+  }
+  .card-grip:active { cursor: grabbing; }
+  .grip-pill {
+    display: block; width: 36px; height: 4px;
+    background: var(--ink-soft); border-radius: 2px;
+  }
+  .card-head { display: flex; align-items: center; gap: 13px; margin-top: 2px; }
   .card-badge { width: 54px; height: 54px; border: 2px solid var(--ink); border-radius: 50%; display: grid; place-items: center; color: var(--ink); background: var(--paper); flex-shrink: 0; }
   .card-badge.on { background: var(--verm); color: var(--paper); }
   .card-titles { flex: 1; min-width: 0; }
@@ -445,12 +453,16 @@
   .ledger-scrim { position: absolute; inset: 0; z-index: 65; background: rgba(10,8,5,0.45);
     display: flex; align-items: flex-end; animation: dyn-fade .22s ease; }
   .ledger {
-    position: relative; width: 100%; max-height: 78%; overflow-y: auto;
+    position: relative; width: 100%; max-height: 78%; overflow: hidden;
     background: var(--paper); color: var(--ink); border-top: 2px solid var(--ink);
-    border-radius: 22px 22px 0 0; padding: 22px 22px 26px;
+    border-radius: 22px 22px 0 0; padding: 0;
     animation: dyn-rise .32s cubic-bezier(.2,.9,.25,1); box-shadow: 0 -16px 50px rgba(0,0,0,0.4);
   }
-  .ledger-head { display: flex; align-items: flex-start; justify-content: space-between; margin-top: 4px; }
+  .ledger-drag-zone { padding: 0 22px 14px; cursor: grab; touch-action: none; }
+  .ledger-drag-zone:active { cursor: grabbing; }
+  .ledger-drag-zone .card-grip { padding-top: 10px; padding-bottom: 6px; }
+  .ledger-scroll { overflow-y: auto; max-height: calc(78vh - 100px); padding: 0 22px 26px; overscroll-behavior: contain; }
+  .ledger-head { display: flex; align-items: flex-start; justify-content: space-between; margin-top: 0; }
   .ledger-title { font-family: var(--deco); font-size: 22px; letter-spacing: -0.01em; }
   .ledger-sub { font-family: var(--cond); font-weight: 500; font-size: 10px; letter-spacing: 0.18em; color: var(--ink-soft); margin-top: 5px; }
   .ledger-close { background: none; border: none; cursor: pointer; font-size: 17px; color: var(--ink-soft); line-height: 1; }
@@ -487,6 +499,7 @@
   <script type="text/babel" src="glyphs.jsx"></script>
   <script type="text/babel" src="field.jsx"></script>
   <script type="text/babel" src="console.jsx"></script>
+  <script type="text/babel" src="sheet.jsx"></script>
   <script type="text/babel" src="card.jsx"></script>
   <script type="text/babel" src="drawer.jsx"></script>
   <script type="text/babel" src="app.jsx"></script>
