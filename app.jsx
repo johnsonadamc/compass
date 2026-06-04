@@ -156,10 +156,10 @@ function App() {
 
   const { w, h } = vp;
   // field must live in the space between the top-zone and the console
-  const CONSOLE_ZONE = 26 + safeBottom + 215 + 10; // bottom-offset + safe inset + panel + gap
+  const CONSOLE_ZONE = 26 + safeBottom + 148 + 10; // bottom-offset + safe inset + panel + gap
   const topEdge = topH + 16;           // top-zone height + breathing room
   const availH = h - topEdge - CONSOLE_ZONE;
-  const fieldR = Math.max(80, Math.min(w * 0.44, availH / 2));
+  const fieldR = Math.max(80, Math.min(w * 0.47, availH / 2));
   const fieldCx = w / 2, fieldCy = topEdge + fieldR;
 
   const cardTruck = window.TRUCKS.find(x => x.id === cardId);
@@ -171,7 +171,7 @@ function App() {
   // day pips: a watched truck is out & within 1.2mi that day
 
   return (
-    <div className={"stage pal-" + tweaks.palette} style={{ "--console-h": "215px" }}>
+    <div className={"stage pal-" + tweaks.palette} style={{ "--console-h": "148px" }}>
       <div className="paper" />
       <div className="frame-rule" />
 
