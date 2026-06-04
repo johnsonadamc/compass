@@ -23,6 +23,8 @@ function App() {
   const [compassLive, setCompassLive] = useState(false);
 
   const [vp, setVp] = useState({ w: window.innerWidth, h: window.innerHeight });
+  const [topH, setTopH] = useState(185);
+  const topZoneRef = useRef(null);
 
   const dragRef = useRef(false);
   const velRef = useRef(0);
@@ -35,6 +37,14 @@ function App() {
     const fit = () => setVp({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener("resize", fit);
     return () => window.removeEventListener("resize", fit);
+  }, []);
+
+  useEffect(() => {
+    const el = topZoneRef.current; if (!el) return;
+    const ro = new ResizeObserver(() => setTopH(el.offsetHeight));
+    ro.observe(el);
+    setTopH(el.offsetHeight);
+    return () => ro.disconnect();
   }, []);
 
   // animation + momentum loop
@@ -134,8 +144,12 @@ function App() {
   };
 
   const { w, h } = vp;
-  const fieldR = Math.min(w, h * 0.52) * 0.44;
-  const fieldCx = w / 2, fieldCy = h * 0.46;
+  // field must live in the space between the top-zone and the console
+  const CONSOLE_ZONE = 26 + 215 + 10; // bottom-offset + panel height + gap
+  const topEdge = topH + 16;           // top-zone height + breathing room
+  const availH = h - topEdge - CONSOLE_ZONE;
+  const fieldR = Math.max(80, Math.min(w * 0.44, availH / 2));
+  const fieldCx = w / 2, fieldCy = topEdge + fieldR;
 
   const cardTruck = window.TRUCKS.find(x => x.id === cardId);
   const navTruck = navId ? window.TRUCKS.find(x => x.id === navId) : null;
@@ -150,21 +164,33 @@ function App() {
       <div className="paper" />
       <div className="frame-rule" />
 
-      {/* header */}
-      <header className="hdr">
-        <div className="hdr-power">FOOD</div>
-        <div className="hdr-titles">
-          <div className="hdr-mark">FOOD</div>
-          <div className="hdr-sub">SET THE HOUR. FIND THE FOOD.</div>
-        </div>
-        <div className="hdr-count">
-          <span className="hdr-count-n">{openCount}</span>
-          <span className="hdr-count-k">OPEN<br/>NOW</span>
-        </div>
-      </header>
+      {/* top zone: header → lens → chips row, all in normal vertical flow */}
+      <div className="top-zone" ref={topZoneRef}>
+        <header className="hdr">
+          <div className="hdr-power">FOOD</div>
+          <div className="hdr-titles">
+            <div className="hdr-mark">FOOD</div>
+            <div className="hdr-sub">SET THE HOUR. FIND THE FOOD.</div>
+          </div>
+          <div className="hdr-count">
+            <span className="hdr-count-n">{openCount}</span>
+            <span className="hdr-count-k">OPEN<br/>NOW</span>
+          </div>
+        </header>
 
-      {/* cuisine lens — slim, under the header */}
-      <window.LensStrip craving={craving} onCraving={setCraving} />
+        <window.LensStrip craving={craving} onCraving={setCraving} />
+
+        <div className="chips-row">
+          {range < 1.98 && (
+            <button className="zoom-chip" onClick={() => setRange(2)}>{range.toFixed(range<1?2:1)} MI · RESET</button>
+          )}
+          <button className={"compass-chip" + (compassLive ? " live" : "")} onClick={enableCompass}>
+            <span className="cc-rose">✣</span>
+            <span className="cc-deg">{Math.round(heading)}°</span>
+            <span className="cc-state">{compassLive ? "LIVE" : "MANUAL"}</span>
+          </button>
+        </div>
+      </div>
 
       <window.Field t={t} day={day} fieldR={fieldR} cx={fieldCx} cy={fieldCy}
         matchOf={matchOf} shape={tweaks.emblem} selectedId={selectedId} watched={watched}
@@ -172,17 +198,6 @@ function App() {
         speed={tweaks.speed} now={now} trucks={window.TRUCKS}
         heading={heading} onHeading={setHeading} range={range} onRange={setRange}
         navId={navId} navProgress={navProgress} />
-
-      {/* compass readout — tap to use device sensor; drag the dial to rotate */}
-      <button className={"compass-chip" + (compassLive ? " live" : "")} onClick={enableCompass}>
-        <span className="cc-rose">✣</span>
-        <span className="cc-deg">{Math.round(heading)}°</span>
-        <span className="cc-state">{compassLive ? "LIVE" : "MANUAL"}</span>
-      </button>
-
-      {range < 1.98 && (
-        <button className="zoom-chip" onClick={() => setRange(2)}>{range.toFixed(range<1?2:1)} MI · RESET</button>
-      )}
 
       {/* navigation banner */}
       {navTruck && (

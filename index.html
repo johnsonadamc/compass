@@ -54,9 +54,21 @@
     z-index: 1; pointer-events: none; opacity: 0.6;
   }
 
+  /* ---------- TOP ZONE (header → lens → chips, vertical flow) ---------- */
+  .top-zone {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 22;
+    padding: 22px 34px 14px;
+    display: flex; flex-direction: column; gap: 14px;
+    pointer-events: none;
+  }
+  .top-zone > * { pointer-events: auto; }
+
+  /* chips row: zoom on left, compass on right */
+  .chips-row { display: flex; align-items: center; min-height: 32px; }
+  .chips-row .compass-chip { margin-left: auto; }
+
   /* ---------- HEADER ---------- */
   .hdr {
-    position: absolute; top: 30px; left: 34px; right: 34px; z-index: 20;
     display: flex; align-items: flex-start; justify-content: space-between;
   }
   .hdr-power {
@@ -117,7 +129,6 @@
 
   /* compass chip */
   .compass-chip {
-    position: absolute; top: 166px; right: 34px; z-index: 22;
     display: flex; align-items: center; gap: 6px; cursor: pointer;
     background: color-mix(in srgb, var(--ink) 8%, transparent);
     border: 1.2px solid var(--ink-soft); border-radius: 8px; padding: 5px 9px; color: var(--ink);
@@ -129,7 +140,7 @@
 
   /* zoom chip */
   .zoom-chip {
-    position: absolute; left: 34px; top: 166px; z-index: 22; cursor: pointer;
+    cursor: pointer;
     background: color-mix(in srgb, var(--ink) 8%, transparent); border: 1.2px solid var(--ink-soft);
     border-radius: 8px; padding: 5px 9px; color: var(--ink-soft);
     font-family: var(--cond); font-weight: 600; font-size: 9px; letter-spacing: 0.12em;
@@ -161,9 +172,8 @@
   }
   .card-actions .card-watch { flex: 1; margin-top: 0; }
 
-  /* cuisine lens — slim icon strip under header */
+  /* cuisine lens — slim icon strip, flows inside .top-zone */
   .lens {
-    position: absolute; top: 120px; left: 34px; right: 34px; z-index: 20;
     display: flex; align-items: center; gap: 11px;
   }
   .lens-label { font-family: var(--cond); font-weight: 600; font-size: 9px; letter-spacing: 0.24em; color: var(--ink-soft); }
