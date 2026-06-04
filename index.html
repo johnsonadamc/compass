@@ -294,17 +294,17 @@
   .console {
     position: absolute; left: 22px; right: 22px; z-index: 25;
     bottom: calc(26px + var(--safe-bottom));
-    background: var(--panel); border-radius: 16px; padding: 10px 18px 12px;
+    background: var(--panel); border-radius: 16px; padding: 7px 18px 8px;
     box-shadow: 0 18px 40px rgba(0,0,0,0.4);
   }
-  .console-rule { height: 1px; background: color-mix(in srgb, var(--panel-text) 16%, transparent); margin: 8px 0 7px; }
+  .console-rule { height: 1px; background: color-mix(in srgb, var(--panel-text) 16%, transparent); margin: 5px 0 5px; }
 
   /* day dial */
-  .daydial-eyebrow { font-family: var(--cond); font-weight: 500; font-size: 9.5px; letter-spacing: 0.24em; color: color-mix(in srgb, var(--panel-text) 55%, transparent); margin-bottom: 5px; }
+  .daydial-eyebrow { font-family: var(--cond); font-weight: 500; font-size: 9.5px; letter-spacing: 0.24em; color: color-mix(in srgb, var(--panel-text) 55%, transparent); margin-bottom: 3px; }
   .daydial-keys { display: flex; gap: 5px; }
   .daykey {
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; position: relative;
-    padding: 4px 1px 3px; cursor: pointer; border-radius: 7px;
+    padding: 3px 1px 3px; cursor: pointer; border-radius: 7px;
     background: color-mix(in srgb, var(--panel-text) 5%, transparent);
     border: 1.2px solid color-mix(in srgb, var(--panel-text) 18%, transparent);
     color: color-mix(in srgb, var(--panel-text) 60%, transparent); transition: all .18s ease;
@@ -317,13 +317,13 @@
   }
 
   /* throttle */
-  .throttle-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+  .throttle-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 5px; }
   .throttle-eyebrow { font-family: var(--cond); font-weight: 500; font-size: 9.5px; letter-spacing: 0.24em; color: color-mix(in srgb, var(--panel-text) 55%, transparent); }
   .throttle-clock { display: flex; align-items: baseline; gap: 5px; color: var(--panel-text); }
-  .clk-hh { font-family: var(--deco); font-size: 22px; color: var(--panel-text); letter-spacing: -0.01em; }
+  .clk-hh { font-family: var(--deco); font-size: 19px; color: var(--panel-text); letter-spacing: -0.01em; }
   .clk-ap { font-family: var(--cond); font-weight: 600; font-size: 11px; letter-spacing: 0.1em; color: var(--verm); }
   .throttle-track {
-    position: relative; height: 32px; cursor: ew-resize; touch-action: none;
+    position: relative; height: 26px; cursor: ew-resize; touch-action: none;
     border: 1.4px solid color-mix(in srgb, var(--panel-text) 40%, transparent); border-radius: 9px; overflow: hidden;
     background: color-mix(in srgb, var(--panel-text) 5%, transparent);
   }
