@@ -89,7 +89,7 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
     const a1 = angOf(p.clientX, p.clientY);
     let delta = a1 - rotRef.current.a0;
     if (Math.abs(delta) > 1.5) rotRef.current.moved = true;
-    onHeading(((rotRef.current.h0 + delta) % 360 + 360) % 360);
+    onHeading(((rotRef.current.h0 - delta) % 360 + 360) % 360);
   };
   const onUp = () => {
     if (rotRef.current && !rotRef.current.moved) onTapField();
