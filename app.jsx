@@ -151,9 +151,9 @@ function App() {
 
       {/* header */}
       <header className="hdr">
-        <div className="hdr-power">FUEL</div>
+        <div className="hdr-power">FOOD</div>
         <div className="hdr-titles">
-          <div className="hdr-mark">FUEL</div>
+          <div className="hdr-mark">FOOD</div>
           <div className="hdr-sub">SET THE HOUR. FIND THE FOOD.</div>
         </div>
         <div className="hdr-count">
