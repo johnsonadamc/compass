@@ -24,6 +24,7 @@ function App() {
 
   const [vp, setVp] = useState({ w: window.innerWidth, h: window.innerHeight });
   const [topH, setTopH] = useState(185);
+  const [safeBottom, setSafeBottom] = useState(0);
   const topZoneRef = useRef(null);
 
   const dragRef = useRef(false);
@@ -34,7 +35,17 @@ function App() {
   const vibeRef = useRef(-1);
 
   useEffect(() => {
-    const fit = () => setVp({ w: window.innerWidth, h: window.innerHeight });
+    const fit = () => {
+      setVp({ w: window.innerWidth, h: window.innerHeight });
+      // read the resolved safe-area inset so the field geometry can reserve it
+      const probe = document.createElement("div");
+      probe.style.cssText = "position:fixed;bottom:env(safe-area-inset-bottom,0px);height:0;width:0;";
+      document.body.appendChild(probe);
+      const inset = parseFloat(getComputedStyle(probe).bottom) || 0;
+      probe.remove();
+      setSafeBottom(inset);
+    };
+    fit();
     window.addEventListener("resize", fit);
     return () => window.removeEventListener("resize", fit);
   }, []);
@@ -145,7 +156,7 @@ function App() {
 
   const { w, h } = vp;
   // field must live in the space between the top-zone and the console
-  const CONSOLE_ZONE = 26 + 215 + 10; // bottom-offset + panel height + gap
+  const CONSOLE_ZONE = 26 + safeBottom + 215 + 10; // bottom-offset + safe inset + panel + gap
   const topEdge = topH + 16;           // top-zone height + breathing room
   const availH = h - topEdge - CONSOLE_ZONE;
   const fieldR = Math.max(80, Math.min(w * 0.44, availH / 2));
