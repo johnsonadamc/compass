@@ -17,12 +17,10 @@
   html, body { height: 100%; }
   body {
     background: #0c0d10; font-family: var(--cond);
-    overflow: hidden; display: flex; align-items: center; justify-content: center;
-    min-height: 100vh;
+    overflow: hidden;
   }
-  #viewport { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center;
-    background: radial-gradient(130% 100% at 50% 0%, #20222a 0%, #0a0b0e 70%); }
-  #root { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+  #viewport { width: 100vw; height: 100vh; }
+  #root { width: 100%; height: 100%; }
 
   /* ---------- PALETTE ---------- */
   .stage {
@@ -35,11 +33,9 @@
     --on-ink: #ece3cf;   /* text drawn ON ink surfaces */
     --panel: #1c1813;    /* console machine-panel surface */
     --panel-text: #ece3cf;
-    position: relative; overflow: hidden; flex-shrink: 0;
-    transform-origin: center center;
+    position: relative; overflow: hidden;
+    width: 100%; height: 100%;
     background: var(--paper); color: var(--ink);
-    box-shadow: 0 40px 120px rgba(0,0,0,0.6);
-    border-radius: 38px; border: 1px solid rgba(0,0,0,0.3);
     user-select: none; -webkit-user-select: none; touch-action: none;
   }
   .stage.pal-noir {
@@ -54,11 +50,8 @@
   }
   .paper { position: absolute; inset: 0; background: var(--paper); z-index: 0; transition: background .4s ease; }
   .frame-rule {
-    position: absolute; inset: 16px; border: 1.5px solid var(--ink); border-radius: 22px;
-    z-index: 1; pointer-events: none; opacity: 0.85;
-  }
-  .frame-rule::before {
-    content: ""; position: absolute; inset: 5px; border: 1px solid var(--ink-faint); border-radius: 17px;
+    position: absolute; inset: 6px; border: 1.5px solid var(--ink); border-radius: 0;
+    z-index: 1; pointer-events: none; opacity: 0.6;
   }
 
   /* ---------- HEADER ---------- */
@@ -144,7 +137,7 @@
 
   /* navigation banner */
   .nav-banner {
-    position: absolute; left: 22px; right: 22px; bottom: 312px; z-index: 30;
+    position: absolute; left: 22px; right: 22px; bottom: calc(26px + var(--console-h, 200px) + 14px); z-index: 30;
     background: var(--verm); color: var(--paper); border-radius: 12px; padding: 11px 14px 9px;
     box-shadow: 0 12px 30px rgba(0,0,0,0.35); animation: dyn-rise .3s cubic-bezier(.2,.9,.25,1);
   }

@@ -2,7 +2,6 @@
 const { useState, useRef, useEffect, useCallback } = React;
 const D = window.DYNAMO;
 
-const W = 440, H = 920;
 const KINDLE = [...new Set(window.TRUCKS.flatMap(t => [t.open, t.close]))].sort((a,b)=>a-b);
 
 function App() {
@@ -16,13 +15,14 @@ function App() {
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [watched, setWatched] = useState(() => new Set(window.TRUCKS.filter(t => t.favorite).map(t => t.id)));
   const [now, setNow] = useState(0);
-  const [scale, setScale] = useState(1);
   const [heading, setHeading] = useState(0);
   const [range, setRange] = useState(2);   // miles shown at the outer rim
   const [navId, setNavId] = useState(null);
   const [navProgress, setNavProgress] = useState(0);
   const [arrived, setArrived] = useState(false);
   const [compassLive, setCompassLive] = useState(false);
+
+  const [vp, setVp] = useState({ w: window.innerWidth, h: window.innerHeight });
 
   const dragRef = useRef(false);
   const velRef = useRef(0);
@@ -32,8 +32,8 @@ function App() {
   const vibeRef = useRef(-1);
 
   useEffect(() => {
-    const fit = () => setScale(Math.min(window.innerWidth / W, window.innerHeight / H));
-    fit(); window.addEventListener("resize", fit);
+    const fit = () => setVp({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener("resize", fit);
     return () => window.removeEventListener("resize", fit);
   }, []);
 
@@ -133,8 +133,9 @@ function App() {
     } catch (err) { /* sensor unavailable — manual heading still works */ }
   };
 
-  const fieldR = Math.min(W, H*0.48) * 0.45;
-  const fieldCx = W/2, fieldCy = H*0.47;
+  const { w, h } = vp;
+  const fieldR = Math.min(w, h * 0.52) * 0.44;
+  const fieldCx = w / 2, fieldCy = h * 0.46;
 
   const cardTruck = window.TRUCKS.find(x => x.id === cardId);
   const navTruck = navId ? window.TRUCKS.find(x => x.id === navId) : null;
@@ -145,7 +146,7 @@ function App() {
   // day pips: a watched truck is out & within 1.2mi that day
 
   return (
-    <div className={"stage pal-" + tweaks.palette} style={{ width: W, height: H, transform: `scale(${scale})` }}>
+    <div className={"stage pal-" + tweaks.palette} style={{ "--console-h": "215px" }}>
       <div className="paper" />
       <div className="frame-rule" />
 
