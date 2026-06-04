@@ -180,7 +180,7 @@ function App() {
         <header className="hdr">
           <div className="hdr-power">FOOD</div>
           <div className="hdr-titles">
-            <div className="hdr-mark">FOOD</div>
+            <div className="hdr-mark">OFFLINE<span className="hdr-lens">//FOOD</span></div>
             <div className="hdr-sub">SET THE HOUR. FIND THE FOOD.</div>
           </div>
           <div className="hdr-count">
