@@ -449,6 +449,21 @@
   }
   .card-watch.on { background: var(--blue); border-color: var(--blue); color: var(--paper); }
 
+  /* ---------- EVENT CARD extras ---------- */
+  .ev-upcoming { margin-top: 16px; }
+  .ev-upcoming-label { font-family: var(--cond); font-weight: 600; font-size: 8.5px; letter-spacing: 0.2em; color: var(--ink-soft); margin-bottom: 8px; }
+  .ev-win { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--ink-faint); font-family: var(--cond); font-size: 11px; }
+  .ev-win-day { font-weight: 600; letter-spacing: 0.1em; min-width: 30px; }
+  .ev-win-time { color: var(--ink-soft); flex: 1; }
+  .ev-win-dist { color: var(--ink-soft); font-size: 10px; }
+  .ev-win-live { color: var(--verm); font-size: 9px; font-weight: 600; letter-spacing: 0.1em; }
+  .ev-ticket {
+    display: block; width: 100%; margin-top: 18px; padding: 13px; text-align: center;
+    font-family: var(--cond); font-weight: 700; font-size: 12px; letter-spacing: 0.14em;
+    background: var(--verm); color: var(--paper); border: 1.5px solid var(--verm);
+    border-radius: 10px; text-decoration: none;
+  }
+
   /* WATCHLIST tab — vertical, left edge (Deco POWER callback) */
   .watchtab {
     position: absolute; left: 0; top: 38%; z-index: 24; transform: translateY(-50%);
@@ -517,6 +532,7 @@
   <script type="text/babel" src="console.jsx"></script>
   <script type="text/babel" src="sheet.jsx"></script>
   <script type="text/babel" src="card.jsx"></script>
+  <script type="text/babel" src="eventcard.jsx"></script>
   <script type="text/babel" src="drawer.jsx"></script>
   <script type="text/babel" src="app.jsx"></script>
 </body>
