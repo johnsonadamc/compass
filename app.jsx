@@ -4,8 +4,8 @@ const D = window.DYNAMO;
 
 // All available modes — add new entries here to extend the menu automatically.
 const MODES = [
-  { id: "food",   label: "FOOD",   sub: "SET THE HOUR. FIND THE FOOD." },
-  { id: "events", label: "EVENTS", sub: "SET THE HOUR. FIND THE FUN."  },
+  { id: "food",   label: "FOOD",   sub: "SET THE HOUR. FIND THE FOOD.", throttleLabel: "SERVICE HOUR" },
+  { id: "events", label: "EVENTS", sub: "SET THE HOUR. FIND THE FUN.",  throttleLabel: "EVENT HOUR"   },
 ];
 
 function App() {
@@ -285,7 +285,8 @@ function App() {
       <window.WatchTab count={watched.size} onOpen={() => setLedgerOpen(true)} />
 
       <window.Console t={t} day={day} onDay={setDay}
-        onScrub={onScrub} onScrubEnd={onScrubEnd} dragRef={dragRef} />
+        onScrub={onScrub} onScrubEnd={onScrubEnd} dragRef={dragRef}
+        throttleLabel={currentMode.throttleLabel} />
 
       {cardEntity && mode === "food" && (
         <window.TruckCard truck={cardEntity} t={t} day={day} watched={watched}

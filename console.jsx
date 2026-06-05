@@ -4,7 +4,7 @@ const { useRef: useRefC, useEffect: useEffectC } = React;
 
 /* TIME THROTTLE — a streamlined horizontal regulator. Drag/fling the handle;
    momentum is handled by the parent. Hours 7A→10P with bold Deco ticks. */
-function Throttle({ t, onScrub, onScrubEnd, dragRef }) {
+function Throttle({ t, onScrub, onScrubEnd, dragRef, label }) {
   const D = window.DYNAMO;
   const trackRef = useRefC(null);
   const span = D.DAY_END - D.DAY_START;
@@ -42,7 +42,7 @@ function Throttle({ t, onScrub, onScrubEnd, dragRef }) {
   return (
     <div className="throttle">
       <div className="throttle-head">
-        <span className="throttle-eyebrow">SERVICE HOUR</span>
+        <span className="throttle-eyebrow">{props.label || "SERVICE HOUR"}</span>
         <span className="throttle-clock">
           <span className="clk-hh">{time.hh}:{time.mm}</span>
           <span className="clk-ap">{time.ampm}</span>
@@ -143,7 +143,7 @@ function ConsolePanel(props) {
     <div className="console">
       <DayDial day={props.day} onDay={props.onDay} />
       <div className="console-rule" />
-      <Throttle t={props.t} onScrub={props.onScrub} onScrubEnd={props.onScrubEnd} dragRef={props.dragRef} />
+      <Throttle t={props.t} onScrub={props.onScrub} onScrubEnd={props.onScrubEnd} dragRef={props.dragRef} label={props.throttleLabel} />
     </div>
   );
 }
