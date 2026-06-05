@@ -31,6 +31,51 @@ function DGlyph({ name, size = 22, color = "currentColor", style }) {
     case "flame":
       inner = <path d="M12 3c3.2 4.1 5.2 6.2 5.2 9.2a5.2 5.2 0 0 1-10.4 0c0-2 .9-3.2 2-4.2 0 2 1 3.1 2 3.1.5-3-1-5 1.2-8z" />;
       break;
+    // ---- event category glyphs ----
+    case "note": // music — quarter note: filled head + stem + flag
+      inner = (
+        <g>
+          <ellipse cx="7.5" cy="16" rx="3.5" ry="2.5" transform="rotate(-10 7.5 16)" />
+          <rect x="10.5" y="5" width="1.8" height="11" />
+          <path d="M10.5 5 18.5 3v4l-8 2z" />
+        </g>
+      );
+      break;
+    case "tent": // market — upward triangle canopy + two poles
+      inner = (
+        <g>
+          <path d="M2 14 12 4 22 14z" />
+          <path d="M5 13.5v7h2.5v-7zM16.5 13.5v7H19v-7z" />
+        </g>
+      );
+      break;
+    case "book": // class — two open pages meeting at a spine
+      inner = (
+        <g>
+          <path d="M3 5v14h8V5H3z" />
+          <path d="M13 5v14h8V5h-8z" />
+        </g>
+      );
+      break;
+    case "mask": // comedy — a bold filled smile-band shape
+      inner = <path d="M4 12a8 6.5 0 0 1 16 0 8 4 0 0 0-16 0z" />;
+      break;
+    case "balloon": // kids — circle balloon + small triangle knot
+      inner = (
+        <g>
+          <circle cx="12" cy="10" r="7.5" />
+          <path d="M10.5 17 12 21.5 13.5 17z" />
+        </g>
+      );
+      break;
+    case "star6": // arts — two overlapping triangles (hexagram)
+      inner = (
+        <g>
+          <path d="M12 3 20.5 17.5H3.5z" />
+          <path d="M12 21 3.5 6.5h17z" />
+        </g>
+      );
+      break;
     default: // "all" — celestial star
       inner = <path d="M12 3 13.5 10.5 21 12 13.5 13.5 12 21 10.5 13.5 3 12 10.5 10.5z" />;
   }
