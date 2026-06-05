@@ -2,10 +2,17 @@
 const { useState, useRef, useEffect, useCallback, useMemo } = React;
 const D = window.DYNAMO;
 
+// All available modes — add new entries here to extend the menu automatically.
+const MODES = [
+  { id: "food",   label: "FOOD",   sub: "SET THE HOUR. FIND THE FOOD." },
+  { id: "events", label: "EVENTS", sub: "SET THE HOUR. FIND THE FUN."  },
+];
+
 function App() {
   const tweaks = { palette: "noir", emblem: "roundel", speed: true, momentum: true };
 
   const [mode, setMode] = useState("food"); // "food" | "events"
+  const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const [t, setT] = useState(12.0);
   const [day, setDay] = useState(0);
   const [craving, setCraving] = useState(0);
@@ -47,13 +54,16 @@ function App() {
     return [...new Set(times)].sort((a, b) => a - b);
   }, [entities]);
 
-  // Reset lens when switching modes
+  // Reset lens + close menu when switching modes
   const switchMode = (m) => {
     setMode(m);
     setCraving(0);
     setCardId(null);
     setSelectedId(null);
+    setModeMenuOpen(false);
   };
+
+  const currentMode = MODES.find(m => m.id === mode) || MODES[0];
 
   useEffect(() => {
     const fit = () => {
@@ -198,13 +208,23 @@ function App() {
         <header className="hdr">
           <div className="hdr-power">OFFLINE</div>
           <div className="hdr-titles">
-            <div className="hdr-mark">OFFLINE<span className="hdr-lens">//{mode === "food" ? "FOOD" : "EVENTS"}</span></div>
-            <div className="mode-toggle">
-              <button className={"mkey" + (mode === "food" ? " active" : "")} onClick={() => switchMode("food")}>FOOD</button>
-              <span className="mkey-div">·</span>
-              <button className={"mkey" + (mode === "events" ? " active" : "")} onClick={() => switchMode("events")}>EVENTS</button>
+            <div className="hdr-wordmark-row">
+              <button className="hdr-mark" onClick={() => setModeMenuOpen(o => !o)}
+                aria-haspopup="true" aria-expanded={modeMenuOpen}>
+                OFFLINE<span className="hdr-lens">//{currentMode.label}</span><span className={"hdr-caret" + (modeMenuOpen ? " open" : "")}>▾</span>
+              </button>
+              {modeMenuOpen && (
+                <div className="mode-menu" role="menu">
+                  {MODES.map(m => (
+                    <button key={m.id} className={"mode-menu-item" + (m.id === mode ? " active" : "")}
+                      role="menuitem" onClick={() => switchMode(m.id)}>
+                      //{m.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="hdr-sub">SET THE HOUR. FIND THE FOOD.</div>
+            <div className="hdr-sub">{currentMode.sub}</div>
           </div>
           <div className="hdr-count">
             <span className="hdr-count-n">{openCount}</span>
@@ -228,7 +248,7 @@ function App() {
 
       <window.Field t={t} day={day} fieldR={fieldR} cx={fieldCx} cy={fieldCy}
         matchOf={matchOf} shape={tweaks.emblem} selectedId={selectedId} watched={watched}
-        onTapBody={onTapBody} onTapField={() => setSelectedId(null)}
+        onTapBody={onTapBody} onTapField={() => { setSelectedId(null); setModeMenuOpen(false); }}
         speed={tweaks.speed} now={now} trucks={entities}
         heading={heading} onHeading={setHeading} range={range} onRange={setRange}
         navId={navId} navProgress={navProgress} />

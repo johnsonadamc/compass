@@ -79,27 +79,41 @@
     margin-top: 2px; opacity: 0; width: 0; /* reserved; subtle */
   }
   .hdr-titles { flex: 1; }
+  .hdr-wordmark-row { position: relative; display: inline-block; }
   .hdr-mark {
+    display: inline-flex; align-items: baseline; gap: 0;
     font-family: var(--deco); font-size: 38px; line-height: 0.84;
     color: var(--ink); letter-spacing: -0.01em;
     transform: skewX(-9deg); transform-origin: left;
-    white-space: nowrap;
+    white-space: nowrap; background: none; border: none; cursor: pointer; padding: 0;
   }
   .hdr-lens {
     font-family: var(--deco); font-size: 15px; color: var(--verm);
     letter-spacing: 0.01em; margin-left: 4px;
     vertical-align: baseline; position: relative; top: -2px;
   }
-  .mode-toggle {
-    display: flex; align-items: center; gap: 5px; margin: 5px 0 4px;
+  .hdr-caret {
+    font-family: var(--cond); font-size: 11px; color: var(--ink-soft);
+    margin-left: 3px; vertical-align: baseline; position: relative; top: -2px;
+    transition: transform .15s; display: inline-block;
   }
-  .mkey {
-    font-family: var(--cond); font-weight: 600; font-size: 10px; letter-spacing: 0.16em;
-    color: var(--ink-soft); background: none; border: none; cursor: pointer; padding: 0;
-    transition: color .15s;
+  .hdr-caret.open { transform: rotate(180deg); }
+  .mode-menu {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 80;
+    background: var(--panel); border: 1.5px solid var(--ink-soft);
+    border-radius: 9px; overflow: hidden; min-width: 120px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    animation: dyn-fade .15s ease;
   }
-  .mkey.active { color: var(--verm); }
-  .mkey-div { font-size: 10px; color: var(--ink-faint); }
+  .mode-menu-item {
+    display: block; width: 100%; padding: 11px 16px; text-align: left;
+    font-family: var(--deco); font-size: 14px; letter-spacing: 0.02em;
+    color: var(--panel-text); background: none; border: none; cursor: pointer;
+    border-bottom: 1px solid color-mix(in srgb, var(--panel-text) 10%, transparent);
+  }
+  .mode-menu-item:last-child { border-bottom: none; }
+  .mode-menu-item:hover { background: color-mix(in srgb, var(--panel-text) 8%, transparent); }
+  .mode-menu-item.active { color: var(--verm); }
   .hdr-sub {
     font-family: var(--cond); font-weight: 500; font-size: 10.5px;
     letter-spacing: 0.22em; color: var(--ink-soft); margin-top: 9px;
