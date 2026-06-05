@@ -42,7 +42,7 @@ function Throttle({ t, onScrub, onScrubEnd, dragRef, label }) {
   return (
     <div className="throttle">
       <div className="throttle-head">
-        <span className="throttle-eyebrow">{props.label || "SERVICE HOUR"}</span>
+        <span className="throttle-eyebrow">{label || "SERVICE HOUR"}</span>
         <span className="throttle-clock">
           <span className="clk-hh">{time.hh}:{time.mm}</span>
           <span className="clk-ap">{time.ampm}</span>
