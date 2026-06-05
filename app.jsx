@@ -201,7 +201,7 @@ function App() {
   const CONSOLE_ZONE = 26 + safeBottom + 124 + 10;
   const topEdge = topH + 16;
   const availH = h - topEdge - CONSOLE_ZONE;
-  const fieldR = Math.max(80, Math.min(w * 0.50, availH / 2));
+  const fieldR = Math.max(80, Math.min(w * 0.46, availH / 2));
   const fieldCx = w / 2, fieldCy = topEdge + fieldR;
 
   // card lookup — truck in food mode, event entity in events mode

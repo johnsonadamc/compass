@@ -158,7 +158,7 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
 
       {/* compass letters (rotate with heading) */}
       {compass.map(([d, deg]) => {
-        const rad = (deg-90)*Math.PI/180; const rr = R + 30;
+        const rad = (deg-90)*Math.PI/180; const rr = R - 22;
         const p = rot(Math.cos(rad)*rr, Math.sin(rad)*rr);
         return <div key={d} className={"compass" + (d==="N"?" north":"")} style={{ left: p.x, top: p.y }}>{d}</div>;
       })}
