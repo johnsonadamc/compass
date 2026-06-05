@@ -145,10 +145,92 @@ function upcomingWindows(truck, fromDay, fromT, max = 3) {
   return out;
 }
 
+// ---- EVENTS vertical ----
+// Each event has a fixed location and an occurrences[] array (one entry per
+// day it runs). occurrences replace the truck week[]/locations[] model for
+// events only. eventToEntity() normalises an event into the truck interface
+// so the existing Field, DYNAMO math, and watchlist code work unchanged.
+
+const EVENT_CATEGORIES = [
+  { id:"all",       label:"ALL",     glyph:"all",     tag:null },
+  { id:"music",     label:"MUSIC",   glyph:"note",    tag:"music" },
+  { id:"market",    label:"MARKET",  glyph:"tent",    tag:"market" },
+  { id:"class",     label:"CLASS",   glyph:"book",    tag:"class" },
+  { id:"comedy",    label:"COMEDY",  glyph:"mask",    tag:"comedy" },
+  { id:"kids",      label:"KIDS",    glyph:"balloon", tag:"kids" },
+  { id:"nightlife", label:"NIGHT",   glyph:"flame",   tag:"nightlife" },
+  { id:"arts",      label:"ARTS",    glyph:"star6",   tag:"arts" },
+];
+
+// occurrences: [{ dayIdx (0-6), start, end }] — decimal hours, within DAY_START/DAY_END
+const EVENTS = [
+  { id:"ev-jazz", name:"JAZZ AT THE SQUARE", venue:"Seville Square",
+    category:"music", glyph:"note", price:"Free",
+    blurb:"Live jazz in the open air. Bring a blanket.",
+    location:{ bearing:308, dist:1.1 },
+    occurrences:[{ dayIdx:0, start:18, end:21 }, { dayIdx:5, start:17, end:21 }] },
+
+  { id:"ev-market", name:"PALAFOX MARKET", venue:"Palafox Street",
+    category:"market", glyph:"tent", price:"Free",
+    blurb:"Local vendors, produce, and handmade goods.",
+    location:{ bearing:350, dist:0.6 },
+    occurrences:[{ dayIdx:6, start:8, end:14 }] },
+
+  { id:"ev-comedy", name:"STAND-UP NIGHT", venue:"The Handlebar",
+    category:"comedy", glyph:"mask", price:"$10",
+    blurb:"Local comics. No cover if you buy a drink.",
+    location:{ bearing:85, dist:0.9 },
+    occurrences:[{ dayIdx:4, start:20, end:22 }] },
+
+  { id:"ev-yoga", name:"YOGA ON THE WATERFRONT", venue:"Bayfront Park",
+    category:"class", glyph:"book", price:"Free",
+    blurb:"Sunrise flow, mats provided.",
+    location:{ bearing:176, dist:1.1 },
+    occurrences:[{ dayIdx:0, start:7, end:8.5 }, { dayIdx:2, start:7, end:8.5 }, { dayIdx:5, start:7, end:8.5 }] },
+
+  { id:"ev-kids", name:"KIDS CRAFT HOUR", venue:"The Art Trail",
+    category:"kids", glyph:"balloon", price:"Free",
+    blurb:"Drop-in craft projects for ages 4–10.",
+    location:{ bearing:222, dist:0.55 },
+    occurrences:[{ dayIdx:1, start:10, end:12 }, { dayIdx:3, start:10, end:12 }] },
+
+  { id:"ev-rooftop", name:"ROOFTOP SETS", venue:"Commerce St. Bar",
+    category:"nightlife", glyph:"flame", price:"$5",
+    blurb:"DJ sets with a view of the bay.",
+    location:{ bearing:112, dist:0.75 },
+    occurrences:[{ dayIdx:4, start:21, end:22 }, { dayIdx:5, start:21, end:22 }] },
+
+  { id:"ev-gallery", name:"GALLERY FIRST FRIDAY", venue:"Artel Gallery",
+    category:"arts", glyph:"star6", price:"Free",
+    blurb:"New show opening. Wine and small plates.",
+    location:{ bearing:290, dist:0.8 },
+    occurrences:[{ dayIdx:4, start:18, end:21 }] },
+];
+
+// Normalise an event into the truck interface so Field/DYNAMO helpers work unchanged.
+// The original event is kept as _event for EventCard to read.
+function eventToEntity(ev) {
+  return {
+    id: ev.id,
+    name: ev.name,
+    glyph: ev.glyph,
+    cravings: [ev.category],   // matches EVENT_CATEGORIES tag
+    week: Array.from({ length: 7 }, (_, d) => {
+      const occ = ev.occurrences.find(o => o.dayIdx === d);
+      return occ ? { loc: 0, open: occ.start, close: occ.end } : null;
+    }),
+    locations: [{ name: ev.venue, bearing: ev.location.bearing, dist: ev.location.dist }],
+    _event: ev,
+  };
+}
+
 window.DYNAMO = {
   DAY_START, DAY_END, fmtTime, fmtHourShort, fmtHM, clamp, lerp, smoothstep,
   compassDir, planFor, powerAt, statusAt, bodyPos, walkMin, upcomingWindows,
+  eventToEntity,
 };
 window.TRUCKS = TRUCKS;
 window.CRAVINGS = CRAVINGS;
 window.DAYS = DAYS;
+window.EVENTS = EVENTS;
+window.EVENT_CATEGORIES = EVENT_CATEGORIES;
