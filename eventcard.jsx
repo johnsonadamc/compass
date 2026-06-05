@@ -32,6 +32,7 @@ function EventCard({ entity, t, day, watched, onClose, onWatch }) {
         <div className="card-step" />
         <div className="card-grip" {...gripHandlers} aria-hidden="true"><span className="grip-pill" /></div>
 
+        <div className="card-body">
         <div className="card-head">
           <div className={"card-badge" + (on ? " on" : "")}>
             <DGlyph name={entity.glyph} size={30} />
@@ -129,6 +130,7 @@ function EventCard({ entity, t, day, watched, onClose, onWatch }) {
         <button className={"card-watch" + (isWatched ? " on" : "")} onClick={() => onWatch(entity.id)}>
           {isWatched ? "★  WATCHING" : "☆  WATCH THIS EVENT"}
         </button>
+        </div>{/* end card-body */}
       </div>
     </div>
   );

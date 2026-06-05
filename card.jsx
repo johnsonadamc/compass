@@ -22,6 +22,7 @@ function TruckCard({ truck, t, day, watched, onClose, onWatch, onGuide }) {
       <div className="card" ref={sheetRef} style={dragStyle} onClick={(ev) => ev.stopPropagation()}>
         <div className="card-step" />
         <div className="card-grip" {...gripHandlers} aria-hidden="true"><span className="grip-pill" /></div>
+        <div className="card-body">
         <div className="card-head">
           <div className={"card-badge" + (open ? " on" : "")}>
             <DGlyph name={truck.glyph} size={30} />
@@ -89,6 +90,7 @@ function TruckCard({ truck, t, day, watched, onClose, onWatch, onGuide }) {
             {isWatched ? "★  WATCHING" : "☆  WATCH"}
           </button>
         </div>
+        </div>{/* end card-body */}
       </div>
     </div>
   );
