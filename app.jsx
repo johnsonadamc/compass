@@ -1,12 +1,11 @@
 // app.jsx — DYNAMO core: state, throttle momentum, craving, tap behavior.
-const { useState, useRef, useEffect, useCallback } = React;
+const { useState, useRef, useEffect, useCallback, useMemo } = React;
 const D = window.DYNAMO;
-
-const KINDLE = [...new Set(window.TRUCKS.flatMap(t => [t.open, t.close]))].sort((a,b)=>a-b);
 
 function App() {
   const tweaks = { palette: "noir", emblem: "roundel", speed: true, momentum: true };
 
+  const [mode, setMode] = useState("food"); // "food" | "events"
   const [t, setT] = useState(12.0);
   const [day, setDay] = useState(0);
   const [craving, setCraving] = useState(0);
@@ -34,10 +33,31 @@ function App() {
   const navWalkRef = useRef(false);
   const vibeRef = useRef(-1);
 
+  // mode-derived data — computed once per mode change
+  const entities = useMemo(() =>
+    mode === "food" ? window.TRUCKS : window.EVENTS.map(D.eventToEntity),
+  [mode]);
+  const activeCategories = mode === "food" ? window.CRAVINGS : window.EVENT_CATEGORIES;
+
+  // Snap points: all open/close times across all entities (fixed for food; events vary less)
+  const KINDLE = useMemo(() => {
+    const times = entities.flatMap(e =>
+      e.week.filter(Boolean).map(w => [w.open, w.close]).flat()
+    );
+    return [...new Set(times)].sort((a, b) => a - b);
+  }, [entities]);
+
+  // Reset lens when switching modes
+  const switchMode = (m) => {
+    setMode(m);
+    setCraving(0);
+    setCardId(null);
+    setSelectedId(null);
+  };
+
   useEffect(() => {
     const fit = () => {
       setVp({ w: window.innerWidth, h: window.innerHeight });
-      // read the resolved safe-area inset so the field geometry can reserve it
       const probe = document.createElement("div");
       probe.style.cssText = "position:fixed;bottom:env(safe-area-inset-bottom,0px);height:0;width:0;";
       document.body.appendChild(probe);
@@ -64,7 +84,6 @@ function App() {
     const tick = (ts) => {
       const dt = Math.min(40, ts - prev); prev = ts;
       setNow(ts);
-      // simulated walk toward a locked truck (real build: driven by GPS watchPosition)
       if (navWalkRef.current) {
         setNavProgress((p) => {
           const np = Math.min(1, p + dt/7000);
@@ -87,8 +106,10 @@ function App() {
             velRef.current *= 0.93;
             if (nt <= D.DAY_START || nt >= D.DAY_END) velRef.current = 0;
             if (Math.abs(velRef.current) <= 0.0004) {
-              const near = KINDLE.reduce((p,c)=>Math.abs(c-nt)<Math.abs(p-nt)?c:p, KINDLE[0]);
-              snapRef.current = Math.abs(near-nt) < 0.55 ? near : Math.round(nt*4)/4;
+              const near = KINDLE.length
+                ? KINDLE.reduce((p,c) => Math.abs(c-nt) < Math.abs(p-nt) ? c : p, KINDLE[0])
+                : nt;
+              snapRef.current = KINDLE.length && Math.abs(near-nt) < 0.55 ? near : Math.round(nt*4)/4;
               velRef.current = 0;
             }
             return nt;
@@ -99,7 +120,7 @@ function App() {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [KINDLE]);
 
   const onScrub = useCallback((nt) => {
     const tm = performance.now();
@@ -113,31 +134,30 @@ function App() {
     if (!tweaks.momentum) {
       velRef.current = 0;
       setT((cur) => {
-        const near = KINDLE.reduce((p,c)=>Math.abs(c-cur)<Math.abs(p-cur)?c:p, KINDLE[0]);
-        snapRef.current = Math.abs(near-cur) < 0.5 ? near : cur;
+        const near = KINDLE.length
+          ? KINDLE.reduce((p,c) => Math.abs(c-cur) < Math.abs(p-cur) ? c : p, KINDLE[0])
+          : cur;
+        snapRef.current = KINDLE.length && Math.abs(near-cur) < 0.5 ? near : cur;
         return cur;
       });
     }
-  }, [tweaks.momentum]);
+  }, [tweaks.momentum, KINDLE]);
 
-  // craving match
-  const stations = window.CRAVINGS;
-  const matchOf = useCallback((truck) => {
-    const tag = stations[D.clamp(craving,0,stations.length-1)].tag;
-    return tag == null ? 1 : (truck.cravings.includes(tag) ? 1 : 0);
-  }, [craving]);
+  // category match (works for both trucks/cravings and events/EVENT_CATEGORIES)
+  const matchOf = useCallback((entity) => {
+    const tag = activeCategories[D.clamp(craving, 0, activeCategories.length-1)].tag;
+    return tag == null ? 1 : (entity.cravings.includes(tag) ? 1 : 0);
+  }, [craving, activeCategories]);
 
-  // single tap -> open detail card
   const onTapBody = (id) => { setCardId(id); setSelectedId(id); };
   const toggleWatch = (id) => setWatched((s) => {
     const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n;
   });
 
-  // navigation (GUIDE ME) — simulated approach; real build swaps in geolocation
+  // navigation — only available in food mode (events have fixed locations but no guide yet)
   const startNav = (id) => { setNavId(id); setNavProgress(0); setArrived(false); vibeRef.current = -1; navWalkRef.current = true; setCardId(null); setSelectedId(id); };
   const stopNav = () => { navWalkRef.current = false; setNavId(null); setNavProgress(0); setArrived(false); };
 
-  // device compass (real on phones; manual rim-drag elsewhere)
   const enableCompass = async () => {
     if (compassLive) { setCompassLive(false); return; }
     try {
@@ -151,45 +171,48 @@ function App() {
       };
       window.addEventListener("deviceorientation", handler, true);
       setCompassLive(true);
-    } catch (err) { /* sensor unavailable — manual heading still works */ }
+    } catch (err) { /* sensor unavailable */ }
   };
 
   const { w, h } = vp;
-  // field must live in the space between the top-zone and the console
-  const CONSOLE_ZONE = 26 + safeBottom + 124 + 10; // bottom-offset + safe inset + panel + gap
-  const topEdge = topH + 16;           // top-zone height + breathing room
+  const CONSOLE_ZONE = 26 + safeBottom + 124 + 10;
+  const topEdge = topH + 16;
   const availH = h - topEdge - CONSOLE_ZONE;
   const fieldR = Math.max(80, Math.min(w * 0.50, availH / 2));
   const fieldCx = w / 2, fieldCy = topEdge + fieldR;
 
-  const cardTruck = window.TRUCKS.find(x => x.id === cardId);
-  const navTruck = navId ? window.TRUCKS.find(x => x.id === navId) : null;
+  // card lookup — truck in food mode, event entity in events mode
+  const cardEntity = entities.find(x => x.id === cardId) || null;
+  const navTruck = mode === "food" && navId ? window.TRUCKS.find(x => x.id === navId) : null;
   const navPlan = navTruck ? D.planFor(navTruck, day) : null;
   const navDist = navPlan ? navPlan.dist * (1 - navProgress * 0.93) : 0;
-  const openCount = window.TRUCKS.filter(tr => D.powerAt(tr, t, day) > 0.5).length;
-
-  // day pips: a watched truck is out & within 1.2mi that day
+  const openCount = entities.filter(e => D.powerAt(e, t, day) > 0.5).length;
+  const openLabel = mode === "food" ? "OPEN\nNOW" : "ON\nNOW";
 
   return (
     <div className={"stage pal-" + tweaks.palette} style={{ "--console-h": "124px" }}>
       <div className="paper" />
       <div className="frame-rule" />
 
-      {/* top zone: header → lens → chips row, all in normal vertical flow */}
       <div className="top-zone" ref={topZoneRef}>
         <header className="hdr">
-          <div className="hdr-power">FOOD</div>
+          <div className="hdr-power">OFFLINE</div>
           <div className="hdr-titles">
-            <div className="hdr-mark">OFFLINE<span className="hdr-lens">//FOOD</span></div>
+            <div className="hdr-mark">OFFLINE<span className="hdr-lens">//{mode === "food" ? "FOOD" : "EVENTS"}</span></div>
+            <div className="mode-toggle">
+              <button className={"mkey" + (mode === "food" ? " active" : "")} onClick={() => switchMode("food")}>FOOD</button>
+              <span className="mkey-div">·</span>
+              <button className={"mkey" + (mode === "events" ? " active" : "")} onClick={() => switchMode("events")}>EVENTS</button>
+            </div>
             <div className="hdr-sub">SET THE HOUR. FIND THE FOOD.</div>
           </div>
           <div className="hdr-count">
             <span className="hdr-count-n">{openCount}</span>
-            <span className="hdr-count-k">OPEN<br/>NOW</span>
+            <span className="hdr-count-k">{openLabel}</span>
           </div>
         </header>
 
-        <window.LensStrip craving={craving} onCraving={setCraving} />
+        <window.LensStrip craving={craving} onCraving={setCraving} categories={activeCategories} />
 
         <div className="chips-row">
           {range < 1.98 && (
@@ -206,11 +229,10 @@ function App() {
       <window.Field t={t} day={day} fieldR={fieldR} cx={fieldCx} cy={fieldCy}
         matchOf={matchOf} shape={tweaks.emblem} selectedId={selectedId} watched={watched}
         onTapBody={onTapBody} onTapField={() => setSelectedId(null)}
-        speed={tweaks.speed} now={now} trucks={window.TRUCKS}
+        speed={tweaks.speed} now={now} trucks={entities}
         heading={heading} onHeading={setHeading} range={range} onRange={setRange}
         navId={navId} navProgress={navProgress} />
 
-      {/* navigation banner */}
       {navTruck && (
         <div className={"nav-banner" + (arrived ? " arrived" : "")}>
           <div className="nav-banner-main">
@@ -231,11 +253,20 @@ function App() {
       <window.Console t={t} day={day} onDay={setDay}
         onScrub={onScrub} onScrubEnd={onScrubEnd} dragRef={dragRef} />
 
-      {cardTruck && <window.TruckCard truck={cardTruck} t={t} day={day} watched={watched}
-        onClose={() => { setCardId(null); setSelectedId(null); }} onWatch={toggleWatch} onGuide={startNav} />}
+      {cardEntity && mode === "food" && (
+        <window.TruckCard truck={cardEntity} t={t} day={day} watched={watched}
+          onClose={() => { setCardId(null); setSelectedId(null); }}
+          onWatch={toggleWatch} onGuide={startNav} />
+      )}
+
+      {cardEntity && mode === "events" && window.EventCard && (
+        <window.EventCard entity={cardEntity} t={t} day={day} watched={watched}
+          onClose={() => { setCardId(null); setSelectedId(null); }}
+          onWatch={toggleWatch} />
+      )}
 
       <window.AlertsLedger open={ledgerOpen} watched={watched} day={day} t={t}
-        trucks={window.TRUCKS} onClose={() => setLedgerOpen(false)}
+        trucks={entities} onClose={() => setLedgerOpen(false)}
         onPick={(id) => { setLedgerOpen(false); onTapBody(id); }} onWatch={toggleWatch} />
 
     </div>
