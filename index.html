@@ -530,6 +530,46 @@
   .ld-livedot { grid-column: 1 / -1; font-family: var(--cond); font-weight: 700; font-size: 9px; letter-spacing: 0.12em; color: var(--verm); }
   .ld-none { margin-top: 6px; font-family: var(--cond); font-size: 11px; color: var(--ink-soft); font-style: italic; }
   .ld-star { background: none; border: none; cursor: pointer; font-size: 18px; color: var(--blue); flex-shrink: 0; line-height: 1; }
+
+  /* live badge on WatchTab — blue pulsing dot */
+  .watchtab-live {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--blue); flex-shrink: 0;
+    box-shadow: 0 0 0 0 var(--blue);
+    animation: watchtab-pulse 2s ease-in-out infinite;
+  }
+  @keyframes watchtab-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(111,179,216,0.7); }
+    60%  { box-shadow: 0 0 0 5px rgba(111,179,216,0); }
+    100% { box-shadow: 0 0 0 0 rgba(111,179,216,0); }
+  }
+
+  /* ledger section grouping */
+  .ledger-section { margin-top: 20px; }
+  .ledger-section:first-child { margin-top: 10px; }
+  .ledger-section-head {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px; padding: 0 2px;
+  }
+  .ledger-section-label {
+    font-family: var(--cond); font-weight: 700; font-size: 10px;
+    letter-spacing: 0.22em; color: var(--ink-soft);
+  }
+  .ledger-section-count {
+    font-family: var(--deco); font-size: 10px; color: var(--ink);
+    background: var(--ink-faint); border-radius: 8px;
+    padding: 1px 6px; line-height: 1.5;
+  }
+  .happening-head .ledger-section-label { color: var(--blue); }
+  .ledger-section-pip {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--blue); flex-shrink: 0;
+    animation: watchtab-pulse 2s ease-in-out infinite;
+  }
+  .ld-row-live { border-left: 2px solid var(--blue); }
+  .ld-group-empty {
+    font-family: var(--sans); font-style: italic; font-size: 12px;
+    color: var(--ink-soft); padding: 8px 2px;
+  }
 </style>
 </head>
 <body>

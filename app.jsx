@@ -224,6 +224,14 @@ function App() {
   const openCount = entities.filter(e => D.powerAt(e, t, day) > 0.5).length;
   const openLabel = mode === "food" ? "OPEN\nNOW" : "ON\nNOW";
 
+  // live badge: watched items open right now (today = day 0) at current throttle time
+  const allWatchedEntities = useMemo(() => {
+    const trucks = (window.TRUCKS || []).filter(tr => watched.has(tr.id));
+    const events = (window.EVENTS || []).filter(ev => watched.has(ev.id)).map(D.eventToEntity);
+    return [...trucks, ...events];
+  }, [watched]);
+  const liveWatchedCount = allWatchedEntities.filter(e => D.powerAt(e, t, 0) > 0.5).length;
+
   return (
     <div className={"stage pal-" + tweaks.palette} style={{ "--console-h": "124px" }}>
       <div className="paper" />
@@ -294,7 +302,7 @@ function App() {
         </div>
       )}
 
-      <window.WatchTab count={watched.size} onOpen={() => setLedgerOpen(true)} />
+      <window.WatchTab count={watched.size} liveCount={liveWatchedCount} onOpen={() => setLedgerOpen(true)} />
 
       <window.Console t={t} day={day} onDay={setDay}
         onScrub={onScrub} onScrubEnd={onScrubEnd} dragRef={dragRef}
@@ -313,8 +321,15 @@ function App() {
       )}
 
       <window.AlertsLedger open={ledgerOpen} watched={watched} day={day} t={t}
-        trucks={entities} onClose={() => setLedgerOpen(false)}
-        onPick={(id) => { setLedgerOpen(false); onTapBody(id); }} onWatch={toggleWatch} />
+        mode={mode} onClose={() => setLedgerOpen(false)}
+        onPick={(id) => {
+          setLedgerOpen(false);
+          const isTruck = (window.TRUCKS || []).some(tr => tr.id === id);
+          const targetMode = isTruck ? "food" : "events";
+          if (targetMode !== mode) { setMode(targetMode); setCraving(0); setModeMenuOpen(false); }
+          onTapBody(id);
+        }}
+        onWatch={toggleWatch} />
 
     </div>
   );
