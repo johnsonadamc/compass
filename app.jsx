@@ -54,7 +54,20 @@ function App() {
     return [...new Set(times)].sort((a, b) => a - b);
   }, [entities]);
 
-  // Reset lens + close menu when switching modes
+  // Close mode menu on any click outside the wordmark button.
+  // Deferred one tick so the button's own opening click doesn't immediately re-close it.
+  useEffect(() => {
+    if (!modeMenuOpen) return;
+    let close;
+    const id = setTimeout(() => {
+      close = () => setModeMenuOpen(false);
+      document.addEventListener("click", close);
+    }, 0);
+    return () => {
+      clearTimeout(id);
+      if (close) document.removeEventListener("click", close);
+    };
+  }, [modeMenuOpen]);
   const switchMode = (m) => {
     setMode(m);
     setCraving(0);
@@ -233,7 +246,7 @@ function App() {
           <div className="hdr-sub">{currentMode.sub}</div>
         </header>
 
-        <window.LensStrip craving={craving} onCraving={setCraving} categories={activeCategories} />
+        <window.LensStrip key={mode} craving={craving} onCraving={setCraving} categories={activeCategories} />
 
         <div className="chips-row">
           {range < 1.98 && (
