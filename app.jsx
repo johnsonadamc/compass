@@ -19,7 +19,13 @@ function App() {
   const [cardId, setCardId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [ledgerOpen, setLedgerOpen] = useState(false);
-  const [watched, setWatched] = useState(() => new Set(window.TRUCKS.filter(t => t.favorite).map(t => t.id)));
+  const [watched, setWatched] = useState(() => {
+    try {
+      const raw = localStorage.getItem("offline.watchlist.v1");
+      if (raw !== null) return new Set(JSON.parse(raw));
+    } catch {}
+    return new Set(window.TRUCKS.filter(t => t.favorite).map(t => t.id));
+  });
   const [now, setNow] = useState(0);
   const [heading, setHeading] = useState(0);
   const [range, setRange] = useState(2);   // miles shown at the outer rim
@@ -171,6 +177,12 @@ function App() {
     const tag = activeCategories[D.clamp(craving, 0, activeCategories.length-1)].tag;
     return tag == null ? 1 : (entity.cravings.includes(tag) ? 1 : 0);
   }, [craving, activeCategories]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("offline.watchlist.v1", JSON.stringify([...watched]));
+    } catch {}
+  }, [watched]);
 
   const onTapBody = (id) => { setCardId(id); setSelectedId(id); };
   const toggleWatch = (id) => setWatched((s) => {
