@@ -58,8 +58,8 @@
   /* ---------- TOP ZONE (header → lens → chips, vertical flow) ---------- */
   .top-zone {
     position: absolute; top: 0; left: 0; right: 0; z-index: 22;
-    padding: 22px 34px 14px;
-    display: flex; flex-direction: column; gap: 14px;
+    padding: 16px 28px 12px;
+    display: flex; flex-direction: column; gap: 10px;
     pointer-events: none;
   }
   .top-zone > * { pointer-events: auto; }
@@ -70,31 +70,27 @@
 
   /* ---------- HEADER ---------- */
   .hdr {
-    display: flex; align-items: flex-start; justify-content: space-between;
+    display: flex; flex-direction: column; gap: 5px;
   }
-  .hdr-power {
-    writing-mode: vertical-rl; transform: rotate(180deg);
-    font-family: var(--deco); font-size: 12px; letter-spacing: 0.34em;
-    color: var(--verm); align-self: stretch; line-height: 1;
-    margin-top: 2px; opacity: 0; width: 0; /* reserved; subtle */
-  }
-  .hdr-titles { flex: 1; }
+  .hdr-power { display: none; } /* reserved, not rendered */
+  .hdr-primary { display: flex; align-items: center; justify-content: space-between; }
+  .hdr-titles { flex: 1; min-width: 0; }
   .hdr-wordmark-row { position: relative; display: inline-block; }
   .hdr-mark {
     display: inline-flex; align-items: baseline; gap: 0;
-    font-family: var(--deco); font-size: 38px; line-height: 0.84;
+    font-family: var(--deco); font-size: 24px; line-height: 1;
     color: var(--ink); letter-spacing: -0.01em;
     transform: skewX(-9deg); transform-origin: left;
     white-space: nowrap; background: none; border: none; cursor: pointer; padding: 0;
   }
   .hdr-lens {
-    font-family: var(--deco); font-size: 15px; color: var(--verm);
-    letter-spacing: 0.01em; margin-left: 4px;
-    vertical-align: baseline; position: relative; top: -2px;
+    font-family: var(--deco); font-size: 13px; color: var(--verm);
+    letter-spacing: 0.01em; margin-left: 3px;
+    vertical-align: baseline; position: relative; top: -1px;
   }
   .hdr-caret {
-    font-family: var(--cond); font-size: 11px; color: var(--ink-soft);
-    margin-left: 3px; vertical-align: baseline; position: relative; top: -2px;
+    font-family: var(--cond); font-size: 10px; color: var(--ink-soft);
+    margin-left: 3px; vertical-align: baseline; position: relative; top: -1px;
     transition: transform .15s; display: inline-block;
   }
   .hdr-caret.open { transform: rotate(180deg); }
@@ -115,18 +111,18 @@
   .mode-menu-item:hover { background: color-mix(in srgb, var(--panel-text) 8%, transparent); }
   .mode-menu-item.active { color: var(--verm); }
   .hdr-sub {
-    font-family: var(--cond); font-weight: 500; font-size: 10.5px;
-    letter-spacing: 0.22em; color: var(--ink-soft); margin-top: 9px;
+    font-family: var(--cond); font-weight: 500; font-size: 9.5px;
+    letter-spacing: 0.2em; color: var(--ink-soft); margin-top: 0;
   }
   .hdr-count {
-    display: flex; align-items: center; gap: 7px; margin-top: 2px;
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: 12px;
   }
   .hdr-count-n {
-    font-family: var(--deco); font-size: 34px; color: var(--verm); line-height: 0.8;
+    font-family: var(--deco); font-size: 26px; color: var(--verm); line-height: 1;
   }
   .hdr-count-k {
-    font-family: var(--cond); font-weight: 600; font-size: 10px; letter-spacing: 0.16em;
-    color: var(--ink); line-height: 1.05;
+    font-family: var(--cond); font-weight: 600; font-size: 9px; letter-spacing: 0.14em;
+    color: var(--ink-soft); line-height: 1.1;
   }
 
   /* ---------- FIELD ---------- */

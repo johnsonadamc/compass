@@ -206,30 +206,31 @@ function App() {
 
       <div className="top-zone" ref={topZoneRef}>
         <header className="hdr">
-          <div className="hdr-power">OFFLINE</div>
-          <div className="hdr-titles">
-            <div className="hdr-wordmark-row">
-              <button className="hdr-mark" onClick={() => setModeMenuOpen(o => !o)}
-                aria-haspopup="true" aria-expanded={modeMenuOpen}>
-                OFFLINE<span className="hdr-lens">//{currentMode.label}</span><span className={"hdr-caret" + (modeMenuOpen ? " open" : "")}>▾</span>
-              </button>
-              {modeMenuOpen && (
-                <div className="mode-menu" role="menu">
-                  {MODES.map(m => (
-                    <button key={m.id} className={"mode-menu-item" + (m.id === mode ? " active" : "")}
-                      role="menuitem" onClick={() => switchMode(m.id)}>
-                      //{m.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+          <div className="hdr-primary">
+            <div className="hdr-titles">
+              <div className="hdr-wordmark-row">
+                <button className="hdr-mark" onClick={() => setModeMenuOpen(o => !o)}
+                  aria-haspopup="true" aria-expanded={modeMenuOpen}>
+                  OFFLINE<span className="hdr-lens">//{currentMode.label}</span><span className={"hdr-caret" + (modeMenuOpen ? " open" : "")}>▾</span>
+                </button>
+                {modeMenuOpen && (
+                  <div className="mode-menu" role="menu">
+                    {MODES.map(m => (
+                      <button key={m.id} className={"mode-menu-item" + (m.id === mode ? " active" : "")}
+                        role="menuitem" onClick={() => switchMode(m.id)}>
+                        //{m.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="hdr-sub">{currentMode.sub}</div>
+            <div className="hdr-count">
+              <span className="hdr-count-n">{openCount}</span>
+              <span className="hdr-count-k">{openLabel}</span>
+            </div>
           </div>
-          <div className="hdr-count">
-            <span className="hdr-count-n">{openCount}</span>
-            <span className="hdr-count-k">{openLabel}</span>
-          </div>
+          <div className="hdr-sub">{currentMode.sub}</div>
         </header>
 
         <window.LensStrip craving={craving} onCraving={setCraving} categories={activeCategories} />
