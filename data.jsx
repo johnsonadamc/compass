@@ -44,6 +44,7 @@ const DEFAULT_RIM_MI = 5;
 const CITIES = {
   pensacola: {
     label: "Pensacola, FL",
+    hubLabel: "GARDEN & PALAFOX",
     center: { lat: 30.4097, lng: -87.2169 },
   },
 };
