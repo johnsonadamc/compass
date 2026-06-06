@@ -2,6 +2,11 @@
 // Exposes window.Field.
 const { useRef: useRefF } = React;
 
+// ---- Flick-spin tuning — adjust these to change the feel ----
+const DIAL_FLICK_THRESHOLD = 0.08;  // deg/ms  — minimum release speed to trigger spin momentum
+const DIAL_MAX_VEL         = 0.40;  // deg/ms  — cap: hard flick stays playful, not wild
+const DIAL_STALE_MS        = 100;   // ms      — ignore velocity if pointer was idle before release
+
 function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, onTap, speed, ahead, homing, approach }) {
   const D = window.DYNAMO;
   const DGlyph = window.DGlyph;
@@ -52,7 +57,8 @@ function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, o
 }
 
 function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, onTapBody, onTapField,
-                 speed, now, trucks, heading, onHeading, range, onRange, navId, navProgress, userPos }) {
+                 speed, now, trucks, heading, onHeading, range, onRange, navId, navProgress, userPos,
+                 onFlick }) {
   const D = window.DYNAMO;
   const list = trucks || window.TRUCKS;
   const ringFracs = [0.25, 0.5, 1];
@@ -70,6 +76,7 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
   const angOf = (cxp, cyp) => { const c = center(); return Math.atan2(cyp - c.y, cxp - c.x) * 180 / Math.PI; };
 
   const onDown = (e) => {
+    onFlick(0); // cancel any active spin the instant the user grabs the dial
     if (e.touches && e.touches.length === 2) {
       const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY;
       pinchRef.current = { d0: Math.hypot(dx, dy), r0: range }; return;
@@ -86,13 +93,30 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
     }
     if (!rotRef.current) return;
     const p = e.touches ? e.touches[0] : e;
+    const now = performance.now();
     const a1 = angOf(p.clientX, p.clientY);
     let delta = a1 - rotRef.current.a0;
+    // track instantaneous angular velocity for flick detection on release
+    // heading = h0 - (a1 - a0), so dHeading/dt = -d(a1)/dt
+    if (rotRef.current.prevT !== undefined) {
+      const dtm = now - rotRef.current.prevT;
+      if (dtm > 0) rotRef.current.lastVel = -(a1 - rotRef.current.prevA) / dtm;
+    }
+    rotRef.current.prevA = a1;
+    rotRef.current.prevT = now;
     if (Math.abs(delta) > 1.5) rotRef.current.moved = true;
     onHeading(((rotRef.current.h0 - delta) % 360 + 360) % 360);
   };
   const onUp = () => {
-    if (rotRef.current && !rotRef.current.moved) onTapField();
+    if (rotRef.current) {
+      if (!rotRef.current.moved) onTapField();
+      // flick detection: only if the pointer was still moving at release
+      const vel = rotRef.current.lastVel ?? 0;
+      const age = performance.now() - (rotRef.current.prevT ?? 0);
+      if (Math.abs(vel) > DIAL_FLICK_THRESHOLD && age < DIAL_STALE_MS) {
+        onFlick(Math.sign(vel) * Math.min(Math.abs(vel), DIAL_MAX_VEL));
+      }
+    }
     rotRef.current = null; pinchRef.current = null;
   };
   // scroll up = zoom in = smaller rim range

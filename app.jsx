@@ -47,6 +47,11 @@ function App() {
   const snapRef = useRef(null);
   const navWalkRef = useRef(false);
   const vibeRef = useRef(-1);
+  const dialVelRef = useRef(0); // deg/ms — flick-spin momentum for the compass dial
+
+  // Dial spin decay constants (tunable; source of truth for feel is in field.jsx)
+  const DIAL_FRICTION = 0.88;   // velocity multiplier per 16ms frame — ~1s to stop
+  const DIAL_STOP_VEL = 0.002;  // deg/ms below which spin is cancelled
 
   // mode-derived data — computed once per mode change
   const entities = useMemo(() =>
@@ -158,6 +163,12 @@ function App() {
           });
         }
       }
+      // dial flick-spin momentum — decays smoothly, overridden by live compass
+      if (Math.abs(dialVelRef.current) > DIAL_STOP_VEL) {
+        setHeading(h => ((h + dialVelRef.current * dt) % 360 + 360) % 360);
+        dialVelRef.current *= Math.pow(DIAL_FRICTION, dt / 16);
+        if (Math.abs(dialVelRef.current) < DIAL_STOP_VEL) dialVelRef.current = 0;
+      }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -197,6 +208,8 @@ function App() {
     } catch {}
   }, [watched]);
 
+  const onFlick = useCallback((vel) => { dialVelRef.current = vel; }, []);
+
   const onTapBody = (id) => { setCardId(id); setSelectedId(id); };
   const toggleWatch = (id) => setWatched((s) => {
     const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n;
@@ -205,6 +218,9 @@ function App() {
   // navigation — only available in food mode (events have fixed locations but no guide yet)
   const startNav = (id) => { setNavId(id); setNavProgress(0); setArrived(false); vibeRef.current = -1; navWalkRef.current = true; setCardId(null); setSelectedId(id); };
   const stopNav = () => { navWalkRef.current = false; setNavId(null); setNavProgress(0); setArrived(false); };
+
+  // When live compass activates, kill any active flick spin so sensor heading wins.
+  useEffect(() => { if (compassLive) dialVelRef.current = 0; }, [compassLive]);
 
   const enableCompass = async () => {
     if (compassLive) { setCompassLive(false); return; }
@@ -218,6 +234,7 @@ function App() {
         if (h != null) setHeading(h);
       };
       window.addEventListener("deviceorientation", handler, true);
+      dialVelRef.current = 0; // cancel any spin before sensor takes over
       setCompassLive(true);
     } catch (err) { /* sensor unavailable */ }
   };
@@ -299,7 +316,7 @@ function App() {
         onTapBody={onTapBody} onTapField={() => { setSelectedId(null); setModeMenuOpen(false); }}
         speed={tweaks.speed} now={now} trucks={entities}
         heading={heading} onHeading={setHeading} range={range} onRange={setRange}
-        navId={navId} navProgress={navProgress} userPos={userPos} />
+        navId={navId} navProgress={navProgress} userPos={userPos} onFlick={onFlick} />
 
       {navTruck && (
         <div className={"nav-banner" + (arrived ? " arrived" : "")}>
