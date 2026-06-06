@@ -58,7 +58,7 @@ function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, o
 
 function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, onTapBody, onTapField,
                  speed, now, trucks, heading, onHeading, range, onRange, navId, navProgress, userPos,
-                 onFlick, spinning }) {
+                 onFlick, spinning, compassLive, onTapHub }) {
   const D = window.DYNAMO;
   const list = trucks || window.TRUCKS;
   const ringFracs = [0.25, 0.5, 1];
@@ -187,8 +187,13 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
         return <div key={d} className={"compass" + (d==="N"?" north":"")} style={{ left: p.x, top: p.y }}>{d}</div>;
       })}
 
-      {/* HUB = YOU (steady pulse) */}
-      <div className="hub">
+      {/* HUB = YOU — tap to activate location + compass */}
+      <button type="button"
+        className={"hub" + (compassLive ? " live" : "")}
+        onClick={onTapHub}
+        onMouseDown={e => e.stopPropagation()}
+        onTouchStart={e => e.stopPropagation()}
+        aria-label={userPos ? "location active" : "tap to activate location"}>
         <span className="hub-pulse" aria-hidden="true" />
         <svg viewBox="0 0 80 80" width="46" height="46">
           <circle cx="40" cy="40" r="37" className="hub-ring1" />
@@ -200,9 +205,12 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
         </svg>
         {userPos
           ? <div className="hub-label">YOU</div>
-          : <div className="hub-label hub-label-anchor">{window.CITIES[window.DEFAULT_CITY].hubLabel}</div>
+          : <>
+              <div className="hub-label hub-label-anchor">{window.CITIES[window.DEFAULT_CITY].hubLabel}</div>
+              <div className="hub-tap-invite">TAP TO LOCATE</div>
+            </>
         }
-      </div>
+      </button>
 
       {placed.map((pl) => {
         const angDeg = Math.atan2(pl.y, pl.x) * 180/Math.PI;       // screen angle

@@ -49,6 +49,7 @@ function App() {
   const navWalkRef = useRef(false);
   const vibeRef = useRef(-1);
   const dialVelRef = useRef(0); // deg/ms — flick-spin momentum for the compass dial
+  const orientationHandlersRef = useRef(null); // { abs, rel } — kept so we can removeEventListener by exact reference
 
   // Dial spin decay constants (tunable; source of truth for feel is in field.jsx)
   const DIAL_FRICTION = 0.976;  // velocity multiplier per 16ms frame — ~3.5s to stop (weighted-wheel feel)
@@ -92,16 +93,8 @@ function App() {
 
   const currentMode = MODES.find(m => m.id === mode) || MODES[0];
 
-  // One-shot geolocation on mount. On deny/error/unavailable, userPos stays null
-  // and planFor falls back to the city anchor (stored estimated bearing/dist).
-  // Requires HTTPS in production; works on localhost in dev.
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => setUserPos(null),
-    );
-  }, []);
+  // Geolocation and compass are activated together by a user tap on the YOU hub (see activateLive).
+  // Auto-requesting on mount was unreliable on mobile (permission prompt often silently dropped).
 
   useEffect(() => {
     const fit = () => {
@@ -230,21 +223,73 @@ function App() {
     else { setSpinning(false); }
   }, [compassLive]);
 
-  const enableCompass = async () => {
-    if (compassLive) { setCompassLive(false); return; }
+  // Remove the stored orientation handlers and mark compass as off.
+  const teardownCompass = () => {
+    if (orientationHandlersRef.current) {
+      window.removeEventListener("deviceorientationabsolute", orientationHandlersRef.current.abs, true);
+      window.removeEventListener("deviceorientation",         orientationHandlersRef.current.rel, true);
+      orientationHandlersRef.current = null;
+    }
+    setCompassLive(false);
+  };
+
+  // Build and register heading handlers, then set compassLive = true.
+  // Android: prefer deviceorientationabsolute (true magnetic north); fall back to relative alpha.
+  // iOS: uses webkitCompassHeading (already absolute). iOS requires requestPermission() from a
+  // user gesture — this function must be called (even without await) within a gesture handler.
+  const setupCompass = async () => {
     try {
       if (typeof DeviceOrientationEvent !== "undefined" && DeviceOrientationEvent.requestPermission) {
         const res = await DeviceOrientationEvent.requestPermission();
         if (res !== "granted") return;
       }
-      const handler = (e) => {
-        const h = e.webkitCompassHeading != null ? e.webkitCompassHeading : (e.alpha != null ? 360 - e.alpha : null);
-        if (h != null) setHeading(h);
-      };
-      window.addEventListener("deviceorientation", handler, true);
-      dialVelRef.current = 0; // cancel any spin before sensor takes over
-      setCompassLive(true);
-    } catch (err) { /* sensor unavailable */ }
+    } catch { return; }
+
+    // Tear down any existing handlers before re-registering.
+    if (orientationHandlersRef.current) {
+      window.removeEventListener("deviceorientationabsolute", orientationHandlersRef.current.abs, true);
+      window.removeEventListener("deviceorientation",         orientationHandlersRef.current.rel, true);
+    }
+
+    // gotAbsolute: once the absolute event fires, the relative handler becomes a no-op.
+    let gotAbsolute = false;
+    const absHandler = (e) => {
+      if (e.alpha == null) return;
+      gotAbsolute = true;
+      setHeading((360 - e.alpha + 360) % 360);
+    };
+    const relHandler = (e) => {
+      if (gotAbsolute) return; // absolute event is available — ignore relative
+      const h = e.webkitCompassHeading != null
+        ? e.webkitCompassHeading
+        : (e.alpha != null ? (360 - e.alpha + 360) % 360 : null);
+      if (h != null) setHeading(h);
+    };
+
+    window.addEventListener("deviceorientationabsolute", absHandler, true);
+    window.addEventListener("deviceorientation",         relHandler, true);
+    orientationHandlersRef.current = { abs: absHandler, rel: relHandler };
+    dialVelRef.current = 0;
+    setCompassLive(true);
+  };
+
+  // Compass chip: toggle live ↔ manual. Hub tap is the initial activation; chip is the toggle.
+  const enableCompass = () => {
+    if (compassLive) { teardownCompass(); return; }
+    setupCompass();
+  };
+
+  // Hub tap: request both geolocation AND compass from a single user gesture.
+  // If location is already active, tap does nothing (chip handles toggling thereafter).
+  const activateLive = () => {
+    if (userPos) return;
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {}, // denied → userPos stays null, anchor label stays, manual drag still works
+      );
+    }
+    setupCompass(); // called without await — synchronous preamble runs within the gesture stack
   };
 
   const { w, h } = vp;
@@ -323,7 +368,7 @@ function App() {
         speed={tweaks.speed} now={now} trucks={entities}
         heading={heading} onHeading={setHeading} range={range} onRange={setRange}
         navId={navId} navProgress={navProgress} userPos={userPos} onFlick={onFlick}
-        spinning={spinning} />
+        spinning={spinning} compassLive={compassLive} onTapHub={activateLive} />
 
       {navTruck && (
         <div className={"nav-banner" + (arrived ? " arrived" : "")}>
