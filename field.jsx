@@ -190,7 +190,7 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
       {/* HUB = YOU (steady pulse) */}
       <div className="hub">
         <span className="hub-pulse" aria-hidden="true" />
-        <svg viewBox="0 0 80 80" width="58" height="58">
+        <svg viewBox="0 0 80 80" width="46" height="46">
           <circle cx="40" cy="40" r="37" className="hub-ring1" />
           <circle cx="40" cy="40" r="29" className="hub-ring2" />
           <circle cx="40" cy="40" r="20" className="hub-ring3" />
