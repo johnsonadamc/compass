@@ -31,6 +31,11 @@ const DAYS = Array.from({ length: 7 }, (_, d) => {
   };
 });
 
+/* Default outer-ring distance in miles. Drives the initial zoom level, the
+   pinch-zoom bounds (proportional), and emblem-size scaling in field.jsx.
+   Change this one value to shift all rim-related behaviour together. */
+const DEFAULT_RIM_MI = 5;
+
 /* ---- CITY CONFIG ----
    Each city supplies a label and a center lat/lng used as:
      1. the anchor for deriving seed entity coordinates
@@ -222,7 +227,7 @@ function statusAt(truck, t, day) {
 function bodyPos(truck, fieldR, day, userLat, userLng) {
   const p = planFor(truck, day, userLat, userLng); if (!p) return null;
   const rad = (p.bearing - 90) * Math.PI / 180;
-  const rr = clamp(p.dist / 2, 0, 1) * fieldR;
+  const rr = clamp(p.dist / DEFAULT_RIM_MI, 0, 1) * fieldR;
   return { x: Math.cos(rad)*rr, y: Math.sin(rad)*rr, r: rr };
 }
 const walkMin = (d) => Math.max(2, Math.round(d * 18));
@@ -323,7 +328,8 @@ function eventToEntity(ev) {
 }
 
 window.DYNAMO = {
-  DAY_START, DAY_END, fmtTime, fmtHourShort, fmtHM, clamp, lerp, smoothstep,
+  DAY_START, DAY_END, DEFAULT_RIM_MI,
+  fmtTime, fmtHourShort, fmtHM, clamp, lerp, smoothstep,
   compassDir, planFor, powerAt, statusAt, bodyPos, walkMin, upcomingWindows,
   eventToEntity, haversineMi, geoBearing, geoDestination,
 };

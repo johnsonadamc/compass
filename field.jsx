@@ -81,7 +81,7 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
     if (pinchRef.current && e.touches && e.touches.length === 2) {
       const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY;
       // pinch out (bigger distance) => zoom in => smaller range
-      onRange(D.clamp(pinchRef.current.r0 * (pinchRef.current.d0 / Math.hypot(dx,dy)), 0.5, 2));
+      onRange(D.clamp(pinchRef.current.r0 * (pinchRef.current.d0 / Math.hypot(dx,dy)), D.DEFAULT_RIM_MI * 0.25, D.DEFAULT_RIM_MI));
       e.preventDefault(); return;
     }
     if (!rotRef.current) return;
@@ -96,7 +96,7 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
     rotRef.current = null; pinchRef.current = null;
   };
   // scroll up = zoom in = smaller rim range
-  const onWheel = (e) => { e.preventDefault(); onRange(D.clamp(range * (1 + e.deltaY*0.0016), 0.5, 2)); };
+  const onWheel = (e) => { e.preventDefault(); onRange(D.clamp(range * (1 + e.deltaY*0.0016), D.DEFAULT_RIM_MI * 0.25, D.DEFAULT_RIM_MI)); };
 
   // ---- placement (with heading rotation + declump) ----
   const uLat = userPos?.lat, uLng = userPos?.lng;
@@ -108,7 +108,7 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
     const baseAng = (plan.bearing - 90);
     const rad = baseAng * Math.PI/180;
     const raw = rot(Math.cos(rad)*rr, Math.sin(rad)*rr);
-    const size = D.lerp(31, 41, D.clamp(1 - plan.dist/2, 0, 1));
+    const size = D.lerp(31, 41, D.clamp(1 - plan.dist/D.DEFAULT_RIM_MI, 0, 1));
     return { truck, x: raw.x, y: raw.y, r: rr, size, plan, dist,
       power: D.powerAt(truck, t, day), match: matchOf(truck) };
   }).filter(Boolean);

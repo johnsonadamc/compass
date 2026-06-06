@@ -28,7 +28,7 @@ function App() {
   });
   const [now, setNow] = useState(0);
   const [heading, setHeading] = useState(0);
-  const [range, setRange] = useState(2);   // miles shown at the outer rim
+  const [range, setRange] = useState(D.DEFAULT_RIM_MI);  // miles shown at the outer rim
   const [navId, setNavId] = useState(null);
   const [navProgress, setNavProgress] = useState(0);
   const [arrived, setArrived] = useState(false);
@@ -282,8 +282,8 @@ function App() {
         <window.LensStrip key={mode} craving={craving} onCraving={setCraving} categories={activeCategories} />
 
         <div className="chips-row">
-          {range < 1.98 && (
-            <button className="zoom-chip" onClick={() => setRange(2)}>{range.toFixed(range<1?2:1)} MI · RESET</button>
+          {range < D.DEFAULT_RIM_MI * 0.99 && (
+            <button className="zoom-chip" onClick={() => setRange(D.DEFAULT_RIM_MI)}>{range.toFixed(range<1?2:1)} MI · RESET</button>
           )}
           {userPos === null && <span className="pos-est-chip" title="Using estimated position — location access unavailable">EST POS</span>}
           <button className={"compass-chip" + (compassLive ? " live" : "")} onClick={enableCompass}>
