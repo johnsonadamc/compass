@@ -58,7 +58,7 @@ function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, o
 
 function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, onTapBody, onTapField,
                  speed, now, trucks, heading, onHeading, range, onRange, navId, navProgress, userPos,
-                 onFlick }) {
+                 onFlick, spinning }) {
   const D = window.DYNAMO;
   const list = trucks || window.TRUCKS;
   const ringFracs = [0.25, 0.5, 1];
@@ -148,7 +148,7 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
   const navPl = placed.find(pl => pl.truck.id === navId);
 
   return (
-    <div className="field" style={{ left: cx, top: cy, transform: `translate(-50%,-50%)` }}
+    <div className={"field" + (spinning ? " spinning" : "")} style={{ left: cx, top: cy, transform: `translate(-50%,-50%)` }}
       ref={bezelRef}
       onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
       onTouchStart={onDown} onTouchMove={onMove} onTouchEnd={onUp} onWheel={onWheel}>

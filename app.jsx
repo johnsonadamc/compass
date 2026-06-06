@@ -33,6 +33,7 @@ function App() {
   const [navProgress, setNavProgress] = useState(0);
   const [arrived, setArrived] = useState(false);
   const [compassLive, setCompassLive] = useState(false);
+  const [spinning, setSpinning] = useState(false);
   // null = permission denied / unavailable → dial falls back to city anchor as user position
   const [userPos, setUserPos] = useState(null);
 
@@ -167,7 +168,10 @@ function App() {
       if (Math.abs(dialVelRef.current) > DIAL_STOP_VEL) {
         setHeading(h => ((h + dialVelRef.current * dt) % 360 + 360) % 360);
         dialVelRef.current *= Math.pow(DIAL_FRICTION, dt / 16);
-        if (Math.abs(dialVelRef.current) < DIAL_STOP_VEL) dialVelRef.current = 0;
+        if (Math.abs(dialVelRef.current) < DIAL_STOP_VEL) {
+          dialVelRef.current = 0;
+          setSpinning(false);
+        }
       }
       raf = requestAnimationFrame(tick);
     };
@@ -208,7 +212,7 @@ function App() {
     } catch {}
   }, [watched]);
 
-  const onFlick = useCallback((vel) => { dialVelRef.current = vel; }, []);
+  const onFlick = useCallback((vel) => { dialVelRef.current = vel; if (vel !== 0) setSpinning(true); }, []);
 
   const onTapBody = (id) => { setCardId(id); setSelectedId(id); };
   const toggleWatch = (id) => setWatched((s) => {
@@ -220,7 +224,11 @@ function App() {
   const stopNav = () => { navWalkRef.current = false; setNavId(null); setNavProgress(0); setArrived(false); };
 
   // When live compass activates, kill any active flick spin so sensor heading wins.
-  useEffect(() => { if (compassLive) dialVelRef.current = 0; }, [compassLive]);
+  // spinning tracks compassLive directly: sensor updates every frame, emblems must track live.
+  useEffect(() => {
+    if (compassLive) { dialVelRef.current = 0; setSpinning(true); }
+    else { setSpinning(false); }
+  }, [compassLive]);
 
   const enableCompass = async () => {
     if (compassLive) { setCompassLive(false); return; }
@@ -314,7 +322,8 @@ function App() {
         onTapBody={onTapBody} onTapField={() => { setSelectedId(null); setModeMenuOpen(false); }}
         speed={tweaks.speed} now={now} trucks={entities}
         heading={heading} onHeading={setHeading} range={range} onRange={setRange}
-        navId={navId} navProgress={navProgress} userPos={userPos} onFlick={onFlick} />
+        navId={navId} navProgress={navProgress} userPos={userPos} onFlick={onFlick}
+        spinning={spinning} />
 
       {navTruck && (
         <div className={"nav-banner" + (arrived ? " arrived" : "")}>
