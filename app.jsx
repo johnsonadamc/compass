@@ -50,7 +50,7 @@ function App() {
   const dialVelRef = useRef(0); // deg/ms — flick-spin momentum for the compass dial
 
   // Dial spin decay constants (tunable; source of truth for feel is in field.jsx)
-  const DIAL_FRICTION = 0.88;   // velocity multiplier per 16ms frame — ~1s to stop
+  const DIAL_FRICTION = 0.976;  // velocity multiplier per 16ms frame — ~3.5s to stop (weighted-wheel feel)
   const DIAL_STOP_VEL = 0.002;  // deg/ms below which spin is cancelled
 
   // mode-derived data — computed once per mode change
