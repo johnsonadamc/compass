@@ -1,5 +1,6 @@
 // data.jsx — DYNAMO content + machine model (with weekly schedules & roaming).
-// Exposes window.DYNAMO (helpers), window.TRUCKS, window.CRAVINGS, window.DAYS.
+// Exposes window.DYNAMO, window.TRUCKS, window.CRAVINGS, window.DAYS,
+//           window.EVENTS, window.EVENT_CATEGORIES, window.CITIES, window.DEFAULT_CITY.
 
 const DAY_START = 7;   // 7:00
 const DAY_END = 22;    // 22:00
@@ -30,57 +31,141 @@ const DAYS = Array.from({ length: 7 }, (_, d) => {
   };
 });
 
+/* ---- CITY CONFIG ----
+   Each city supplies a label and a center lat/lng used as:
+     1. the anchor for deriving seed entity coordinates
+     2. the fallback "user position" when geolocation is denied/unavailable
+   Adding a new city: add one entry here and set DEFAULT_CITY. */
+const CITIES = {
+  pensacola: {
+    label: "Pensacola, FL",
+    center: { lat: 30.4097, lng: -87.2169 },
+  },
+};
+const DEFAULT_CITY = "pensacola";
+
+/* ---- GEO MATH ----
+   Haversine + bearing: convert real lat/lng pairs to distance (miles) and
+   compass bearing. geoDestination is the inverse — used offline to derive
+   seed latLngs from estimated bearing/dist around the anchor. */
+const GEO_R_MI = 3958.8; // mean earth radius, miles
+
+// Great-circle distance between two points, in miles.
+function haversineMi(lat1, lng1, lat2, lng2) {
+  const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+  const dφ = (lat2 - lat1) * Math.PI / 180;
+  const dλ = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(dλ/2)**2;
+  return GEO_R_MI * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// Initial compass bearing (degrees, 0=N clockwise) from point A to point B.
+function geoBearing(lat1, lng1, lat2, lng2) {
+  const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+  const dλ = (lng2 - lng1) * Math.PI / 180;
+  const y = Math.sin(dλ) * Math.cos(φ2);
+  const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(dλ);
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+
+// Destination point given start lat/lng, bearing (degrees), and distance (miles).
+// Used to derive seed latLngs from estimated bearing/dist; not needed at runtime.
+function geoDestination(lat, lng, bearing, dist) {
+  const δ = dist / GEO_R_MI;
+  const θ = bearing * Math.PI / 180;
+  const φ1 = lat * Math.PI / 180, λ1 = lng * Math.PI / 180;
+  const φ2 = Math.asin(Math.sin(φ1)*Math.cos(δ) + Math.cos(φ1)*Math.sin(δ)*Math.cos(θ));
+  const λ2 = λ1 + Math.atan2(Math.sin(θ)*Math.sin(δ)*Math.cos(φ1), Math.cos(δ)-Math.sin(φ1)*Math.sin(φ2));
+  return { lat: φ2 * 180 / Math.PI, lng: λ2 * 180 / Math.PI };
+}
+
 /* schedule entry helper: e(locIdx, open, close) | null (off that day) */
 const e = (loc, open, close) => ({ loc, open, close });
 
-/* TRUCKS — each has locations[] (named stops w/ bearing+dist) and a 7-day week. */
+/* TRUCKS — each has locations[] (named stops w/ bearing+dist+latLng) and a 7-day week.
+   latLng values are DERIVED FROM ESTIMATED GEOMETRY — not verified;
+   replace with real geocoded coordinates once confirmed. */
 const TRUCKS = [
   { id:"bao", name:"BAO & ARROW", cuisine:"Steamed buns", glyph:"bao", price:2,
     cravings:["savory","fresh"], signature:"Five-spice pork bao", blurb:"Pillowy buns, folded to order.",
     favorite:true,
-    locations:[ {name:"Palafox & Garden", bearing:350, dist:0.6}, {name:"Seville Square", bearing:300, dist:1.1} ],
+    locations:[
+      { name:"Palafox & Garden", bearing:350, dist:0.6,
+        latLng:{ lat:30.418252, lng:-87.218649 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+      { name:"Seville Square",   bearing:300, dist:1.1,
+        latLng:{ lat:30.417659, lng:-87.232888 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+    ],
     week:[ e(0,11,15), e(0,11,15), e(1,11,15), e(0,11,15), e(1,12,16), null, e(0,11,15) ] },
 
   { id:"green", name:"VERDIGRIS", cuisine:"Grain bowls", glyph:"leaf", price:2,
     cravings:["fresh","savory"], signature:"Charred broccolini bowl", blurb:"Market greens, big crunch.",
     favorite:false,
-    locations:[ {name:"Wright & Spring", bearing:312, dist:1.05}, {name:"Bayfront Pkwy", bearing:150, dist:1.4} ],
+    locations:[
+      { name:"Wright & Spring", bearing:312, dist:1.05,
+        latLng:{ lat:30.419868, lng:-87.229996 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+      { name:"Bayfront Pkwy",   bearing:150, dist:1.4,
+        latLng:{ lat:30.392152, lng:-87.205155 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+    ],
     week:[ e(0,10.5,16), e(0,10.5,16), e(0,10.5,16), e(1,10.5,16), e(1,11,15), null, e(0,10.5,16) ] },
 
   { id:"gyro", name:"AEGEAN WHEELS", cuisine:"Greek gyros", glyph:"gyro", price:2,
     cravings:["savory"], signature:"Lamb gyro, tzatziki", blurb:"Spit-roasted all day long.",
     favorite:false,
-    locations:[ {name:"12th & Cervantes", bearing:36, dist:1.3} ],
+    locations:[
+      { name:"12th & Cervantes", bearing:36, dist:1.3,
+        latLng:{ lat:30.424921, lng:-87.204075 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+    ],
     week:[ e(0,11,21), e(0,11,21), e(0,11,21), e(0,11,21), e(0,11,21), e(0,12,20), e(0,11,21) ] },
 
   { id:"cluck", name:"CLUCK TRUCK", cuisine:"Nashville hot", glyph:"drum", price:2,
     cravings:["savory","spicy"], signature:"Hot honey tenders", blurb:"Brined 24 hrs, dredged loud.",
     favorite:false,
-    locations:[ {name:"Gregory & 9th", bearing:80, dist:1.55}, {name:"Palafox & Romana", bearing:110, dist:0.8} ],
+    locations:[
+      { name:"Gregory & 9th",     bearing:80,  dist:1.55,
+        latLng:{ lat:30.413593, lng:-87.191283 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+      { name:"Palafox & Romana",  bearing:110, dist:0.8,
+        latLng:{ lat:30.405739, lng:-87.204285 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+    ],
     week:[ e(0,11,22), e(0,11,22), e(1,11,22), e(1,11,22), e(1,12,22), e(0,12,21), null ] },
 
   { id:"tacos", name:"BRASA", cuisine:"Al pastor tacos", glyph:"taco", price:1,
     cravings:["spicy","savory"], signature:"Al pastor + piña", blurb:"Trompo carved off the flame.",
     favorite:true,
-    locations:[ {name:"Palafox & Garden", bearing:120, dist:0.72}, {name:"Seville Square", bearing:200, dist:0.9} ],
+    locations:[
+      { name:"Palafox & Garden", bearing:120, dist:0.72,
+        latLng:{ lat:30.404489, lng:-87.206437 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+      { name:"Seville Square",   bearing:200, dist:0.9,
+        latLng:{ lat:30.39746,  lng:-87.222065 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+    ],
     week:[ e(0,11,22), e(0,11,22), e(0,11,22), e(1,11,22), e(1,12,22), e(0,12,22), e(0,11,22) ] },
 
   { id:"reel", name:"REEL CATCH", cuisine:"Gulf seafood", glyph:"fish", price:3,
     cravings:["seafood","savory"], signature:"Royal red shrimp roll", blurb:"Off the boat this morning.",
     favorite:false,
-    locations:[ {name:"Bayfront Marina", bearing:176, dist:1.1} ],
+    locations:[
+      { name:"Bayfront Marina", bearing:176, dist:1.1,
+        latLng:{ lat:30.393818, lng:-87.215613 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+    ],
     week:[ e(0,17,22), e(0,17,22), e(0,17,22), e(0,17,22), e(0,17,22), e(0,17,21), null ] },
 
   { id:"sugar", name:"SUGAR THEORY", cuisine:"Soft serve", glyph:"cone", price:1,
     cravings:["sweet"], signature:"Brown-butter twist", blurb:"Churned in small batches.",
     favorite:false,
-    locations:[ {name:"Plaza Ferdinand", bearing:222, dist:0.55} ],
+    locations:[
+      { name:"Plaza Ferdinand", bearing:222, dist:0.55,
+        latLng:{ lat:30.403784, lng:-87.223076 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+    ],
     week:[ e(0,12,22), e(0,12,22), e(0,12,22), e(0,12,22), e(0,12,22), e(0,12,20), e(0,12,22) ] },
 
   { id:"roast", name:"MERIDIAN ROASTERS", cuisine:"Coffee & buns", glyph:"bean", price:1,
     cravings:["caffeine"], signature:"Cardamom cold brew", blurb:"First light, first pour.",
     favorite:false,
-    locations:[ {name:"Intendencia & Jeff.", bearing:270, dist:0.9}, {name:"Wright St Market", bearing:300, dist:1.2} ],
+    locations:[
+      { name:"Intendencia & Jeff.", bearing:270, dist:0.9,
+        latLng:{ lat:30.409699, lng:-87.232004 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+      { name:"Wright St Market",   bearing:300, dist:1.2,
+        latLng:{ lat:30.418383, lng:-87.234342 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+    ],
     week:[ e(0,7,14), e(0,7,14), e(0,7,14), e(0,7,14), e(1,8,14), null, e(0,7,14) ] },
 ];
 
@@ -103,10 +188,17 @@ const DIRS = ["N","NE","E","SE","S","SW","W","NW"];
 const compassDir = (bearing) => DIRS[Math.round(((bearing % 360) / 45)) % 8];
 
 // resolve a truck's plan on a given day -> { open, close, name, bearing, dist } | null (off)
-function planFor(truck, day) {
+// Optional userLat/userLng: when provided and the location has a latLng, bearing and dist
+// are computed from real geography; otherwise falls back to stored estimated values.
+function planFor(truck, day, userLat, userLng) {
   const ent = truck.week[day]; if (!ent) return null;
   const loc = truck.locations[ent.loc] || truck.locations[0];
-  return { open: ent.open, close: ent.close, name: loc.name, bearing: loc.bearing, dist: loc.dist };
+  let bearing = loc.bearing, dist = loc.dist;
+  if (userLat != null && userLng != null && loc.latLng) {
+    dist    = haversineMi(userLat, userLng, loc.latLng.lat, loc.latLng.lng);
+    bearing = geoBearing(userLat, userLng, loc.latLng.lat, loc.latLng.lng);
+  }
+  return { open: ent.open, close: ent.close, name: loc.name, bearing, dist };
 }
 
 // power 0..1 over the service window on a day with soft ramps
@@ -163,52 +255,55 @@ const EVENT_CATEGORIES = [
 ];
 
 // occurrences: [{ dayIdx (0-6), start, end }] — decimal hours, within DAY_START/DAY_END
+// location.latLng values are DERIVED FROM ESTIMATED GEOMETRY — not verified;
+// replace with real geocoded coordinates once confirmed.
 const EVENTS = [
   { id:"ev-jazz", name:"JAZZ AT THE SQUARE", venue:"Seville Square",
     category:"music", glyph:"note", price:"Free",
     blurb:"Live jazz in the open air. Bring a blanket.",
-    location:{ bearing:308, dist:1.1 },
+    location:{ bearing:308, dist:1.1, latLng:{ lat:30.419501, lng:-87.231448 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     occurrences:[{ dayIdx:0, start:18, end:21 }, { dayIdx:5, start:17, end:21 }] },
 
   { id:"ev-market", name:"PALAFOX MARKET", venue:"Palafox Street",
     category:"market", glyph:"tent", price:"Free",
     blurb:"Local vendors, produce, and handmade goods.",
-    location:{ bearing:350, dist:0.6 },
+    location:{ bearing:350, dist:0.6, latLng:{ lat:30.418252, lng:-87.218649 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     occurrences:[{ dayIdx:6, start:8, end:14 }] },
 
   { id:"ev-comedy", name:"STAND-UP NIGHT", venue:"The Handlebar",
     category:"comedy", glyph:"mask", price:"$10",
     blurb:"Local comics. No cover if you buy a drink.",
-    location:{ bearing:85, dist:0.9 },
+    location:{ bearing:85, dist:0.9, latLng:{ lat:30.410834, lng:-87.201854 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     occurrences:[{ dayIdx:4, start:20, end:22 }] },
 
   { id:"ev-yoga", name:"YOGA ON THE WATERFRONT", venue:"Bayfront Park",
     category:"class", glyph:"book", price:"Free",
     blurb:"Sunrise flow, mats provided.",
-    location:{ bearing:176, dist:1.1 },
+    location:{ bearing:176, dist:1.1, latLng:{ lat:30.393818, lng:-87.215613 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     occurrences:[{ dayIdx:0, start:7, end:8.5 }, { dayIdx:2, start:7, end:8.5 }, { dayIdx:5, start:7, end:8.5 }] },
 
   { id:"ev-kids", name:"KIDS CRAFT HOUR", venue:"The Art Trail",
     category:"kids", glyph:"balloon", price:"Free",
     blurb:"Drop-in craft projects for ages 4–10.",
-    location:{ bearing:222, dist:0.55 },
+    location:{ bearing:222, dist:0.55, latLng:{ lat:30.403784, lng:-87.223076 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     occurrences:[{ dayIdx:1, start:10, end:12 }, { dayIdx:3, start:10, end:12 }] },
 
   { id:"ev-rooftop", name:"ROOFTOP SETS", venue:"Commerce St. Bar",
     category:"nightlife", glyph:"flame", price:"$5",
     blurb:"DJ sets with a view of the bay.",
-    location:{ bearing:112, dist:0.75 },
+    location:{ bearing:112, dist:0.75, latLng:{ lat:30.405633, lng:-87.205231 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     occurrences:[{ dayIdx:4, start:21, end:22 }, { dayIdx:5, start:21, end:22 }] },
 
   { id:"ev-gallery", name:"GALLERY FIRST FRIDAY", venue:"Artel Gallery",
     category:"arts", glyph:"star6", price:"Free",
     blurb:"New show opening. Wine and small plates.",
-    location:{ bearing:290, dist:0.8 },
+    location:{ bearing:290, dist:0.8, latLng:{ lat:30.413659, lng:-87.229516 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     occurrences:[{ dayIdx:4, start:18, end:21 }] },
 ];
 
 // Normalise an event into the truck interface so Field/DYNAMO helpers work unchanged.
 // The original event is kept as _event for EventCard to read.
+// location.latLng is carried through so geo-based planFor works for events too.
 function eventToEntity(ev) {
   return {
     id: ev.id,
@@ -219,7 +314,8 @@ function eventToEntity(ev) {
       const occ = ev.occurrences.find(o => o.dayIdx === d);
       return occ ? { loc: 0, open: occ.start, close: occ.end } : null;
     }),
-    locations: [{ name: ev.venue, bearing: ev.location.bearing, dist: ev.location.dist }],
+    locations: [{ name: ev.venue, bearing: ev.location.bearing, dist: ev.location.dist,
+                  latLng: ev.location.latLng }],
     _event: ev,
   };
 }
@@ -227,10 +323,12 @@ function eventToEntity(ev) {
 window.DYNAMO = {
   DAY_START, DAY_END, fmtTime, fmtHourShort, fmtHM, clamp, lerp, smoothstep,
   compassDir, planFor, powerAt, statusAt, bodyPos, walkMin, upcomingWindows,
-  eventToEntity,
+  eventToEntity, haversineMi, geoBearing, geoDestination,
 };
 window.TRUCKS = TRUCKS;
 window.CRAVINGS = CRAVINGS;
 window.DAYS = DAYS;
 window.EVENTS = EVENTS;
 window.EVENT_CATEGORIES = EVENT_CATEGORIES;
+window.CITIES = CITIES;
+window.DEFAULT_CITY = DEFAULT_CITY;
