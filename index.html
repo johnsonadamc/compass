@@ -165,6 +165,13 @@
   .compass-chip .cc-state { font-family: var(--cond); font-weight: 600; font-size: 8px; letter-spacing: 0.16em; color: var(--ink-soft); }
   .compass-chip.live .cc-state { color: var(--verm); }
 
+  /* estimated-position indicator — shown when geolocation is null/denied */
+  .pos-est-chip {
+    font-family: var(--cond); font-weight: 600; font-size: 8px; letter-spacing: 0.18em;
+    color: var(--ink-soft); border: 1px solid var(--ink-faint); border-radius: 5px;
+    padding: 3px 6px; margin-right: 4px; pointer-events: none;
+  }
+
   /* zoom chip */
   .zoom-chip {
     cursor: pointer;

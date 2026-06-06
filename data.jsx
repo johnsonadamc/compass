@@ -218,8 +218,9 @@ function statusAt(truck, t, day) {
   return "open";
 }
 // bearing+dist -> field offset for the day (null if off)
-function bodyPos(truck, fieldR, day) {
-  const p = planFor(truck, day); if (!p) return null;
+// Optional userLat/userLng: threaded to planFor for geo-accurate bearing/dist.
+function bodyPos(truck, fieldR, day, userLat, userLng) {
+  const p = planFor(truck, day, userLat, userLng); if (!p) return null;
   const rad = (p.bearing - 90) * Math.PI / 180;
   const rr = clamp(p.dist / 2, 0, 1) * fieldR;
   return { x: Math.cos(rad)*rr, y: Math.sin(rad)*rr, r: rr };
@@ -227,10 +228,11 @@ function bodyPos(truck, fieldR, day) {
 const walkMin = (d) => Math.max(2, Math.round(d * 18));
 
 // next upcoming windows for a truck from (day, t) forward — for alerts ledger
-function upcomingWindows(truck, fromDay, fromT, max = 3) {
+// Optional userLat/userLng: threaded to planFor so displayed dist/bearing are geo-accurate.
+function upcomingWindows(truck, fromDay, fromT, max = 3, userLat, userLng) {
   const out = [];
   for (let d = fromDay; d < 7 && out.length < max; d++) {
-    const p = planFor(truck, d); if (!p) continue;
+    const p = planFor(truck, d, userLat, userLng); if (!p) continue;
     if (d === fromDay && fromT >= p.close) continue; // already over today
     out.push({ day: d, ...p, live: d === fromDay && fromT >= p.open && fromT < p.close });
   }

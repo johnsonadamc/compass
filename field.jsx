@@ -52,7 +52,7 @@ function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, o
 }
 
 function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, onTapBody, onTapField,
-                 speed, now, trucks, heading, onHeading, range, onRange, navId, navProgress }) {
+                 speed, now, trucks, heading, onHeading, range, onRange, navId, navProgress, userPos }) {
   const D = window.DYNAMO;
   const list = trucks || window.TRUCKS;
   const ringFracs = [0.25, 0.5, 1];
@@ -99,9 +99,9 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
   const onWheel = (e) => { e.preventDefault(); onRange(D.clamp(range * (1 + e.deltaY*0.0016), 0.5, 2)); };
 
   // ---- placement (with heading rotation + declump) ----
+  const uLat = userPos?.lat, uLng = userPos?.lng;
   const placed = list.map((truck) => {
-    const p = D.bodyPos(truck, R, day); if (!p) return null;
-    const plan = D.planFor(truck, day);
+    const plan = D.planFor(truck, day, uLat, uLng); if (!plan) return null;
     let dist = plan.dist;
     if (truck.id === navId) dist = dist * (1 - navProgress * 0.93);
     const rr = D.clamp(dist/range, 0, 1) * R;

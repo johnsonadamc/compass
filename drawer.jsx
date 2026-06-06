@@ -23,9 +23,10 @@ function resolveWatched(watched) {
   return { foodItems, eventItems };
 }
 
-function HappeningNow({ items, t, onPick, onWatch }) {
+function HappeningNow({ items, t, userPos, onPick, onWatch }) {
   const D = window.DYNAMO;
   const DGlyph = window.DGlyph;
+  const uLat = userPos?.lat, uLng = userPos?.lng;
   // day 0 = today always for "happening now"
   const live = items.filter(e => D.powerAt(e, t, 0) > 0.5);
   if (live.length === 0) return null;
@@ -37,7 +38,7 @@ function HappeningNow({ items, t, onPick, onWatch }) {
       </div>
       <div className="ledger-list">
         {live.map(e => {
-          const p = D.planFor(e, 0);
+          const p = D.planFor(e, 0, uLat, uLng);
           return (
             <div key={e.id} className="ld-row ld-row-live">
               <button className="ld-badge" onClick={() => onPick(e.id)} aria-label={e.name}>
@@ -66,10 +67,11 @@ function HappeningNow({ items, t, onPick, onWatch }) {
   );
 }
 
-function ModeGroup({ label, items, day, t, onPick, onWatch }) {
+function ModeGroup({ label, items, day, t, userPos, onPick, onWatch }) {
   const D = window.DYNAMO;
   const DGlyph = window.DGlyph;
   const days = window.DAYS;
+  const uLat = userPos?.lat, uLng = userPos?.lng;
   if (items.length === 0) return (
     <div className="ledger-section">
       <div className="ledger-section-head">
@@ -86,7 +88,7 @@ function ModeGroup({ label, items, day, t, onPick, onWatch }) {
       </div>
       <div className="ledger-list">
         {items.map(tr => {
-          const next = D.upcomingWindows(tr, day, t, 3);
+          const next = D.upcomingWindows(tr, day, t, 3, uLat, uLng);
           return (
             <div key={tr.id} className="ld-row">
               <button className="ld-badge" onClick={() => onPick(tr.id)} aria-label={tr.name}>
@@ -119,7 +121,7 @@ function ModeGroup({ label, items, day, t, onPick, onWatch }) {
   );
 }
 
-function AlertsLedger({ open, watched, day, t, mode, onClose, onPick, onWatch }) {
+function AlertsLedger({ open, watched, day, t, mode, userPos, onClose, onPick, onWatch }) {
   if (!open) return null;
   const { sheetRef, dragStyle, gripHandlers } = window.useSwipeDismiss(onClose);
   const { foodItems, eventItems } = resolveWatched(watched);
@@ -156,9 +158,9 @@ function AlertsLedger({ open, watched, day, t, mode, onClose, onPick, onWatch })
             </div>
           ) : (
             <>
-              <HappeningNow items={allItems} t={t} onPick={onPick} onWatch={onWatch} />
-              <ModeGroup label={primaryLabel} items={primaryItems} day={day} t={t} onPick={onPick} onWatch={onWatch} />
-              <ModeGroup label={secondaryLabel} items={secondaryItems} day={day} t={t} onPick={onPick} onWatch={onWatch} />
+              <HappeningNow items={allItems} t={t} userPos={userPos} onPick={onPick} onWatch={onWatch} />
+              <ModeGroup label={primaryLabel} items={primaryItems} day={day} t={t} userPos={userPos} onPick={onPick} onWatch={onWatch} />
+              <ModeGroup label={secondaryLabel} items={secondaryItems} day={day} t={t} userPos={userPos} onPick={onPick} onWatch={onWatch} />
             </>
           )}
         </div>

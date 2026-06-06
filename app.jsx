@@ -33,6 +33,8 @@ function App() {
   const [navProgress, setNavProgress] = useState(0);
   const [arrived, setArrived] = useState(false);
   const [compassLive, setCompassLive] = useState(false);
+  // null = permission denied / unavailable → dial falls back to city anchor as user position
+  const [userPos, setUserPos] = useState(null);
 
   const [vp, setVp] = useState({ w: window.innerWidth, h: window.innerHeight });
   const [topH, setTopH] = useState(185);
@@ -83,6 +85,17 @@ function App() {
   };
 
   const currentMode = MODES.find(m => m.id === mode) || MODES[0];
+
+  // One-shot geolocation on mount. On deny/error/unavailable, userPos stays null
+  // and planFor falls back to the city anchor (stored estimated bearing/dist).
+  // Requires HTTPS in production; works on localhost in dev.
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => setUserPos(null),
+    );
+  }, []);
 
   useEffect(() => {
     const fit = () => {
@@ -219,7 +232,7 @@ function App() {
   // card lookup — truck in food mode, event entity in events mode
   const cardEntity = entities.find(x => x.id === cardId) || null;
   const navTruck = mode === "food" && navId ? window.TRUCKS.find(x => x.id === navId) : null;
-  const navPlan = navTruck ? D.planFor(navTruck, day) : null;
+  const navPlan = navTruck ? D.planFor(navTruck, day, userPos?.lat, userPos?.lng) : null;
   const navDist = navPlan ? navPlan.dist * (1 - navProgress * 0.93) : 0;
   const openCount = entities.filter(e => D.powerAt(e, t, day) > 0.5).length;
   const openLabel = mode === "food" ? "OPEN\nNOW" : "ON\nNOW";
@@ -272,6 +285,7 @@ function App() {
           {range < 1.98 && (
             <button className="zoom-chip" onClick={() => setRange(2)}>{range.toFixed(range<1?2:1)} MI · RESET</button>
           )}
+          {userPos === null && <span className="pos-est-chip" title="Using estimated position — location access unavailable">EST POS</span>}
           <button className={"compass-chip" + (compassLive ? " live" : "")} onClick={enableCompass}>
             <span className="cc-rose">✣</span>
             <span className="cc-deg">{Math.round(heading)}°</span>
@@ -285,7 +299,7 @@ function App() {
         onTapBody={onTapBody} onTapField={() => { setSelectedId(null); setModeMenuOpen(false); }}
         speed={tweaks.speed} now={now} trucks={entities}
         heading={heading} onHeading={setHeading} range={range} onRange={setRange}
-        navId={navId} navProgress={navProgress} />
+        navId={navId} navProgress={navProgress} userPos={userPos} />
 
       {navTruck && (
         <div className={"nav-banner" + (arrived ? " arrived" : "")}>
@@ -321,7 +335,7 @@ function App() {
       )}
 
       <window.AlertsLedger open={ledgerOpen} watched={watched} day={day} t={t}
-        mode={mode} onClose={() => setLedgerOpen(false)}
+        mode={mode} userPos={userPos} onClose={() => setLedgerOpen(false)}
         onPick={(id) => {
           setLedgerOpen(false);
           const isTruck = (window.TRUCKS || []).some(tr => tr.id === id);
