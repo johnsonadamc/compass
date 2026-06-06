@@ -110,10 +110,6 @@
   .mode-menu-item:last-child { border-bottom: none; }
   .mode-menu-item:hover { background: color-mix(in srgb, var(--panel-text) 8%, transparent); }
   .mode-menu-item.active { color: var(--verm); }
-  .hdr-sub {
-    font-family: var(--cond); font-weight: 500; font-size: 9.5px;
-    letter-spacing: 0.2em; color: var(--ink-soft); margin-top: 0;
-  }
   .hdr-count {
     display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: 12px;
   }
@@ -165,12 +161,6 @@
   .compass-chip .cc-state { font-family: var(--cond); font-weight: 600; font-size: 8px; letter-spacing: 0.16em; color: var(--ink-soft); }
   .compass-chip.live .cc-state { color: var(--verm); }
 
-  /* estimated-position indicator — shown when geolocation is null/denied */
-  .pos-est-chip {
-    font-family: var(--cond); font-weight: 600; font-size: 8px; letter-spacing: 0.18em;
-    color: var(--ink-soft); border: 1px solid var(--ink-faint); border-radius: 5px;
-    padding: 3px 6px; margin-right: 4px; pointer-events: none;
-  }
 
   /* zoom chip */
   .zoom-chip {
@@ -210,7 +200,6 @@
   .lens {
     display: flex; align-items: center; gap: 11px;
   }
-  .lens-label { font-family: var(--cond); font-weight: 600; font-size: 9px; letter-spacing: 0.24em; color: var(--ink-soft); }
   .lens-chips { display: flex; gap: 7px; }
   .lens-chip {
     width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
@@ -240,6 +229,9 @@
   .hub-label { position: absolute; top: calc(50% + 34px); left: 50%; transform: translateX(-50%);
     font-family: var(--cond); font-weight: 700; font-size: 8.5px;
     letter-spacing: 0.2em; color: var(--ink); white-space: nowrap; }
+  .hub-approx { position: absolute; top: calc(50% - 46px); left: 50%; transform: translateX(-50%);
+    font-family: var(--cond); font-weight: 600; font-size: 7px; letter-spacing: 0.18em;
+    color: var(--ink-soft); white-space: nowrap; pointer-events: none; }
   .hub-ring1 { fill: var(--ink); }
   .hub-ring2 { fill: none; stroke: var(--paper); stroke-width: 1.4; }
   .hub-ring3 { fill: none; stroke: var(--verm); stroke-width: 2.2; }
@@ -499,6 +491,10 @@
     font-family: var(--deco); font-size: 11px; color: var(--ink); background: var(--blue);
     width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
   }
+  .watchtab-count.live {
+    box-shadow: 0 0 0 0 var(--blue);
+    animation: watchtab-pulse 2s ease-in-out infinite;
+  }
 
   /* ALERTS LEDGER sheet */
   .ledger-scrim { position: absolute; inset: 0; z-index: 65; background: rgba(10,8,5,0.45);
@@ -538,13 +534,6 @@
   .ld-none { margin-top: 6px; font-family: var(--cond); font-size: 11px; color: var(--ink-soft); font-style: italic; }
   .ld-star { background: none; border: none; cursor: pointer; font-size: 18px; color: var(--blue); flex-shrink: 0; line-height: 1; }
 
-  /* live badge on WatchTab — blue pulsing dot */
-  .watchtab-live {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--blue); flex-shrink: 0;
-    box-shadow: 0 0 0 0 var(--blue);
-    animation: watchtab-pulse 2s ease-in-out infinite;
-  }
   @keyframes watchtab-pulse {
     0%   { box-shadow: 0 0 0 0 rgba(111,179,216,0.7); }
     60%  { box-shadow: 0 0 0 5px rgba(111,179,216,0); }

@@ -124,7 +124,6 @@ function LensStrip({ craving, onCraving, categories }) {
   const active = keys[D.clamp(craving, 0, keys.length-1)];
   return (
     <div className="lens">
-      <span className="lens-label">FILTER</span>
       <div className="lens-chips">
         {keys.map((k, i) => i === 0 ? null : (
           <button key={k.id} className={"lens-chip" + (i === craving ? " active" : "")}

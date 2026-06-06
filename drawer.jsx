@@ -6,8 +6,7 @@ function WatchTab({ count, liveCount, onOpen }) {
     <button className="watchtab" onClick={onOpen} aria-label="watchlist">
       <span className="watchtab-star">★</span>
       <span className="watchtab-text">WATCHLIST</span>
-      {count > 0 && <span className="watchtab-count">{count}</span>}
-      {liveCount > 0 && <span className="watchtab-live" aria-label={liveCount + " live now"} />}
+      {count > 0 && <span className={"watchtab-count" + (liveCount > 0 ? " live" : "")} aria-label={liveCount > 0 ? liveCount + " live now" : undefined}>{count}</span>}
     </button>
   );
 }

@@ -293,7 +293,6 @@ function App() {
               <span className="hdr-count-k">{openLabel}</span>
             </div>
           </div>
-          <div className="hdr-sub">{currentMode.sub}</div>
         </header>
 
         <window.LensStrip key={mode} craving={craving} onCraving={setCraving} categories={activeCategories} />
@@ -302,7 +301,6 @@ function App() {
           {range < D.DEFAULT_RIM_MI * 0.99 && (
             <button className="zoom-chip" onClick={() => setRange(D.DEFAULT_RIM_MI)}>{range.toFixed(range<1?2:1)} MI · RESET</button>
           )}
-          {userPos === null && <span className="pos-est-chip" title="Using estimated position — location access unavailable">EST POS</span>}
           <button className={"compass-chip" + (compassLive ? " live" : "")} onClick={enableCompass}>
             <span className="cc-rose">✣</span>
             <span className="cc-deg">{Math.round(heading)}°</span>

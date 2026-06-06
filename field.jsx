@@ -199,6 +199,7 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
           <line x1="60" y1="40" x2="77" y2="40" className="hub-bar" />
         </svg>
         <div className="hub-label">YOU</div>
+        {!userPos && <div className="hub-approx" title="Using estimated position — location access unavailable">APPROX</div>}
       </div>
 
       {placed.map((pl) => {
