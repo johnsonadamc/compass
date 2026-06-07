@@ -17,6 +17,26 @@ const fmtHM = (t) => { const f = fmtTime(t); return `${f.hh}:${f.mm}${f.ampm[0].
 
 const WEEKDAYS = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
 
+/* ---- CITY CONFIG ----
+   Each city supplies a label and a center lat/lng used as:
+     1. the anchor for deriving seed entity coordinates
+     2. the fallback "user position" when geolocation is denied/unavailable
+   Adding a new city: add one entry here and set DEFAULT_CITY. */
+const CITIES = {
+  pensacola: {
+    label: "Pensacola, FL",
+    hubLabel: "GARDEN & PALAFOX",
+    center: { lat: 30.4097, lng: -87.2169 },
+    timezone: "America/Chicago",
+  },
+};
+const DEFAULT_CITY = "pensacola";
+
+/* Default outer-ring distance in miles. Drives the initial zoom level, the
+   pinch-zoom bounds (proportional), and emblem-size scaling in field.jsx.
+   Change this one value to shift all rim-related behaviour together. */
+const DEFAULT_RIM_MI = 5;
+
 // Weekday the truck week[] arrays were authored from. Index 0 of each week[]
 // corresponds to this weekday. Do NOT change without re-authoring all schedule data.
 const AUTHOR_BASE_WD = 2; // Tuesday
@@ -60,26 +80,6 @@ const DAYS = Array.from({ length: 7 }, (_, d) => {
     today: d === 0,
   };
 });
-
-/* Default outer-ring distance in miles. Drives the initial zoom level, the
-   pinch-zoom bounds (proportional), and emblem-size scaling in field.jsx.
-   Change this one value to shift all rim-related behaviour together. */
-const DEFAULT_RIM_MI = 5;
-
-/* ---- CITY CONFIG ----
-   Each city supplies a label and a center lat/lng used as:
-     1. the anchor for deriving seed entity coordinates
-     2. the fallback "user position" when geolocation is denied/unavailable
-   Adding a new city: add one entry here and set DEFAULT_CITY. */
-const CITIES = {
-  pensacola: {
-    label: "Pensacola, FL",
-    hubLabel: "GARDEN & PALAFOX",
-    center: { lat: 30.4097, lng: -87.2169 },
-    timezone: "America/Chicago",
-  },
-};
-const DEFAULT_CITY = "pensacola";
 
 /* ---- GEO MATH ----
    Haversine + bearing: convert real lat/lng pairs to distance (miles) and
