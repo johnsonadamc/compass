@@ -13,30 +13,37 @@ time-windowed world. The whole UI is one circular **radar/compass dial**:
 
 - **You** are at the center.
 - **Entities** are placed around you: **angle = compass bearing** to the thing,
-  **distance from center = how far away** it is.
+  **distance from center = how far away** it is. Placement is now computed from
+  **real geographic coordinates** relative to the user's real (or fallback)
+  location — see "Geolocation & placement" below.
 - A **time throttle** at the bottom scrubs through the day (7:00–22:00). As you
   scrub, entities **ignite** when their window opens and **fade to ghosts** when
-  it closes.
+  it closes. The throttle now **initializes to the real current time** (Central);
+  scrubbing thereafter is manual.
 - A **day dial** jumps across a rolling 7 days; entities can roam (different
-  spots/hours on different days).
-- A **lens** filters by category; matches flare, the rest recede.
+  spots/hours on different days). The 7-day window is now built from the **real
+  current date** in Central time — day 0 is genuinely today.
+- A **lens** filters by category; matches flare, the rest recede. Categories and
+  glyphs were overhauled this cycle (see "Categories & glyphs").
 - A **live compass layer** reorients the dial to the device heading (real sensor
-  on phones, manual grab-and-spin drag elsewhere).
+  on phones, manual grab-and-spin drag elsewhere). The dial also has
+  **flick-to-spin momentum**.
 - **Guide Me** navigation homes a chosen entity toward center (currently
   simulated; real version uses GPS `watchPosition`).
 - A **watchlist + alerts ledger** tracks starred entities and their next windows.
+  This is now a **persisted, cross-mode collection** with a "HAPPENING NOW"
+  section — see "Watchlist."
 
 No tabs, no feed, no list. Two core questions map to two gestures: *what do I
 want* = set the lens; *when/where can I get it* = scrub the hour / pick the day.
 
 The brand is **OFFLINE** — "get off your phone, here's what's actually happening
-around you, right now." The name is settled. Domain: a single root (TBD at
-launch, e.g. an `offline.*`); verticals live underneath as paths or subdomains —
-never a domain per vertical.
+around you, right now." **It is live in production at `localoffline.online`**
+(domain via Squarespace Domains, hosting via Vercel — see "Deployment").
 
 ---
 
-## The platform model (important — this is now real, not hypothetical)
+## The platform model (one engine, many lenses)
 
 OFFLINE is **one engine, many lenses (modes)**. A "mode" is a vertical: a
 category of located, time-windowed things. The engine (dial, geometry,
@@ -44,8 +51,7 @@ time-scrub, compass, nav, watchlist) is shared; each mode supplies its own data,
 categories, glyphs, and copy.
 
 **Modes currently implemented:**
-- `FOOD` — food trucks (the original vertical). Trucks with weekly recurring
-  schedules.
+- `FOOD` — food trucks. Trucks with weekly recurring schedules.
 - `EVENTS` — local events (concerts, markets, classes, comedy, etc.). Dated
   one-off / multi-day occurrences.
 
@@ -53,35 +59,247 @@ categories, glyphs, and copy.
 
 ### The MODES array is the single source of truth for navigation
 There is a `MODES` array (in `app.jsx`) where each entry is roughly
-`{ id, label, sub, throttleLabel }`. The wordmark, the mode menu, the subtitle,
-and the throttle label all read from it. **Adding a new vertical should be close
-to: add one entry to MODES + supply its data/categories/glyphs.** Keep it that
-way — do not hardcode "food vs events" logic where a MODES-driven approach works.
+`{ id, label, sub, throttleLabel }`. The wordmark, the mode menu, and the
+throttle label read from it. **Adding a new vertical should be close to: add one
+entry to MODES + supply its data/categories/glyphs.** Keep it that way — do not
+hardcode "food vs events" logic where a MODES-driven approach works.
+NOTE: the per-mode **subtitle line was removed** in the minimization pass (see
+"UI minimization"); MODES may still carry a `sub` field but it is no longer
+rendered in the header. Don't reintroduce the subtitle.
 
 ### How mode switching works (core navigation pattern)
-The header wordmark reads `OFFLINE//[MODE]` (e.g. `OFFLINE//EVENTS`) with a small
-caret. **Tapping the wordmark opens a dropdown menu of modes**; selecting one
-switches mode and closes the menu. There is no segmented toggle (it was removed).
-This tap-the-wordmark-to-switch-lens pattern is the established, intended
-navigation for the whole app — preserve and extend it, don't replace it.
+The header wordmark reads `OFFLINE//[MODE]` with a small caret. **Tapping the
+wordmark opens a dropdown menu of modes**; selecting one switches mode and closes
+the menu. There is no segmented toggle. This tap-the-wordmark-to-switch-lens
+pattern is the established navigation for the whole app — preserve and extend it.
 
 ### Food and Events are parallel, not merged
-Events were deliberately added as a **separate, additive code path** — food-mode
-behavior must keep working untouched. The clean mechanism is a normalizer
-(`eventToEntity()` in `data.jsx`) that converts an event into the same entity
-shape (`week[]`, `locations[]`, `cravings[]`, `_event`) the dial/math/watchlist
-already understand — so `field.jsx`, the `window.DYNAMO` math, and the watchlist
-needed no changes. Prefer this normalize-to-a-common-entity approach for future
-modes rather than branching the engine.
+Events were added as a **separate, additive code path** — food-mode behavior must
+keep working untouched. The clean mechanism is a normalizer (`eventToEntity()` in
+`data.jsx`) that converts an event into the same entity shape (`week[]`,
+`locations[]`, `cravings[]`, `_event`) the dial/math/watchlist already understand
+— so `field.jsx`, the `window.DYNAMO` math, and the watchlist need no changes.
+Prefer this normalize-to-a-common-entity approach for future modes rather than
+branching the engine.
 
 ---
 
-## Legacy naming to clean up
+## Geolocation & placement (SHIPPED — core of the app)
 
-Prototyped as "DYNAMO"; the helper namespace is still `window.DYNAMO`. The app is
-now **OFFLINE**. When safe, rename `window.DYNAMO` to something neutral
-(`window.ENGINE` / `window.DIAL`) — but it's referenced across every `.jsx` file,
-so do it as one deliberate refactor and verify the app loads after. Not urgent.
+Placement is now **real geography**, not hardcoded relative coordinates.
+
+- Each location (truck `locations[]` entry, event `location`) carries a
+  **`latLng: { lat, lng }`**. Bearing and distance are **computed at runtime**
+  from the user's position to each entity via haversine (`haversineMi`) + a
+  bearing formula (`geoBearing`) on `window.DYNAMO`.
+- `planFor(truck, day, userLat, userLng)` computes bearing/dist from geo when a
+  real position + `latLng` are present, and **falls back to stored estimated
+  `bearing`/`dist`** when they aren't. This keeps the engine backward-compatible.
+- **City config:** `CITIES` (in `data.jsx`) is a named map keyed by city, each
+  `{ label, hubLabel, timezone, center: {lat,lng} }`, with a `DEFAULT_CITY`
+  (currently `pensacola`). The anchor (`center`) doubles as the fallback location
+  and the origin used to derive seed `latLng`s. **Adding a market = add a CITIES
+  entry.** Don't hardcode Pensacola anywhere else.
+- **Seed coordinates are DERIVED from the old estimated bearing/dist around the
+  anchor** (destination-point formula), and labeled in comments as
+  `DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded
+  coordinates`. They are NOT verified addresses. Real entities must get real
+  geocoded `latLng`s (right-click in Google Maps → copy coords; no API needed).
+- **User location is requested on a deliberate tap of the YOU hub** (NOT on page
+  load — auto-request was unreliable on mobile). The hub is a `<button>`; its
+  pointer/touch-down handlers `stopPropagation()` so tapping it doesn't start a
+  dial drag. The tap requests BOTH geolocation and device-orientation (compass).
+- **Fallback when location is denied/unavailable:** silently center on the city
+  anchor; the app never blanks. The YOU hub shows **"YOU"** when a real position
+  is active, and the anchor's `hubLabel` (e.g. "GARDEN & PALAFOX") plus a small
+  "TAP TO LOCATE" invite when position is the fallback. (The label swap replaced
+  an earlier crowded "EST POS"/"APPROX" indicator.)
+- **Rim radius** is a single configurable constant `DEFAULT_RIM_MI` (currently
+  **5 miles**) — the source of truth for the default zoom range; pinch-zoom
+  bounds scale proportionally. No auto-scaling. Change this one constant to
+  retune. (Note: seed entities cluster near center at 5mi because they're all
+  close together; this resolves with real, spread-out coordinates.)
+- Requires HTTPS (Vercel provides it). iOS Geolocation + DeviceOrientation both
+  require HTTPS and the orientation permission must be requested from a user
+  gesture (the hub tap satisfies this).
+
+## Live compass (SHIPPED)
+
+- Tapping the YOU hub (or the compass chip) activates live mode: the dial rotates
+  to the device heading. iOS uses `webkitCompassHeading` (true north). Android
+  uses `deviceorientationabsolute` (absolute/magnetic north) when available,
+  falling back to relative `deviceorientation` `alpha`.
+- iOS requires `DeviceOrientationEvent.requestPermission()` called synchronously
+  within the tap handler — preserved.
+- **Listener teardown:** the orientation handler references are stored in a ref
+  and removed (with the matching capture flag) on toggle-off, so switching back
+  to "manual" truly stops sensor tracking. (Earlier bug: manual never stopped the
+  compass because the listener was never removed. Fixed — do not regress.)
+- The **compass chip** remains the live↔manual toggle after activation.
+- Manual grab-and-spin still works where there's no sensor, and has
+  **flick-to-spin momentum** (a hard flick coasts ~3–4s then settles; tuning
+  constants for friction/max-velocity/threshold are isolated). Live compass
+  overrides/cancels any active momentum (sensor wins).
+- **Emblems rotate live during a spin** (a `spinning` class drops the emblem
+  `left`/`top` CSS transition during flick/compass so circles track with labels
+  instead of snapping into place on stop).
+
+## Real date & time (SHIPPED — replaces the old fixed-date prototype)
+
+The old prototype pinned a fake date ("Tuesday the 23rd"). It now uses **real
+current date + time in Central (America/Chicago)** regardless of device timezone:
+
+- Timezone is read from `CITIES[DEFAULT_CITY].timezone`. `nowInCity(tz)` uses
+  `Intl.DateTimeFormat` with the IANA zone to get correct wall-clock date/hour in
+  Central (DST handled by the browser's IANA database).
+- `DAYS[]` is rebuilt from the real Central date with calendar-correct math
+  (`new Date(y, m-1, d+n)`), so month boundaries and weekday labels are correct.
+  Day 0 = real today.
+- **`WEEK_OFFSET` is critical:** truck/event `week[]` arrays are positionally
+  encoded relative to an authoring baseline of **Tuesday** (`AUTHOR_BASE_WD = 2`).
+  `planFor` reads `truck.week[(day + WEEK_OFFSET) % 7]` where
+  `WEEK_OFFSET = (realTodayWeekday - AUTHOR_BASE_WD + 7) % 7`, so the schedule
+  rotates correctly onto real weekdays. **Do not change `AUTHOR_BASE_WD` without
+  re-authoring all seed schedule data.** (This will matter less once real,
+  properly-dated data replaces the seed.)
+- The throttle **initializes** to the real Central hour (rounded to nearest
+  quarter-hour, clamped to 7–22). It does **not** tick in real time — real time
+  only seeds the initial handle position; scrubbing is manual thereafter.
+- The watchlist "HAPPENING NOW" section reads the **real current hour**
+  (`DYNAMO.realNowHour`), NOT the scrubbed throttle `t` — so it reflects what's
+  actually live now even if the user scrubs the dial elsewhere. (Intentional
+  divergence: the dial is exploratory; the watchlist is "what can I catch.")
+
+**Load-order caution (learned the hard way):** `data.jsx` runs first and computes
+the date/city machinery at module-load time. A forward reference there (using a
+`const` before its declaration) throws during parse, which prevents
+`window.DYNAMO` from being assigned, which black-screens the whole app. Keep
+declaration order correct in `data.jsx`: format helpers → CITIES/DEFAULT_CITY →
+constants → AUTHOR_BASE_WD → `nowInCity` → cityNow/WEEK_OFFSET/todayHour/
+realNowHour → DAYS → geo math.
+
+---
+
+## Categories & glyphs (OVERHAULED this cycle)
+
+The old craving/event categories were replaced with a finalized taxonomy, and 14
+new custom Art Deco line-art glyphs were installed.
+
+**FOOD cravings (id "label"):** `tacos` "Tacos / Handhelds" · `burgers`
+"Burgers / BBQ" · `asian` "Asian" · `seafood` "Seafood" · `sweets`
+"Sweets / Treats" · `coffee` "Coffee / Drinks" · `global` "Global / Other" —
+plus ALL (default lens).
+
+**EVENTS categories:** `music` "Music / Live" · `markets` "Markets" · `arts`
+"Arts / Culture" · `classes` "Classes / Workshops" · `comedy` "Comedy" ·
+`nightlife` "Nightlife" · `kids` "Kids / Family" — plus ALL (default lens).
+
+- ALL is the default lens on load in both modes.
+- **Glyphs:** 14 custom glyphs keyed by the ids above, monochrome SVG line art on
+  a 48×48 viewBox, stroke-width 2.4, round caps/joins, using `currentColor` so
+  they inherit CSS-variable theming (cream on chips, dark over the vermillion
+  active blip). They live in `glyphs.jsx` via a rendering path **parallel** to the
+  pre-existing engine glyphs (old glyphs render as 24×24 filled; do not clobber
+  them). Two event ids changed shape from the old set: `market`→`markets`,
+  `class`→`classes`.
+- The seed entities were remapped onto the new taxonomy (some are loose fits,
+  e.g. Nashville-hot-chicken → `burgers`) — acceptable because the seed is
+  throwaway and will be replaced by real data.
+
+## UI minimization (SHIPPED)
+
+A deliberate declutter pass for the instrument aesthetic:
+- Removed the per-mode subtitle line ("SET THE HOUR. FIND THE FOOD." etc.).
+- Removed the "FILTER" text label from the lens strip — glyphs stand alone; the
+  active filter name still surfaces on selection.
+- Watchlist tab decluttered: the separate live dot was merged into the **count
+  badge, which pulses (in `--blue`) when a saved item is currently live**.
+
+## Watchlist (SHIPPED — persisted, cross-mode)
+
+- **Persisted** to `localStorage` under a versioned key (`offline.watchlist.v1`);
+  reads/writes wrapped in try/catch (corrupt/unavailable storage → empty, never
+  throws). No user accounts — per-device by design.
+- **Cross-mode collection**, grouped by type, current mode's group on top; saved
+  refs resolve to live entity data each open (no frozen snapshots).
+- **"HAPPENING NOW"** section at the top surfaces saved items currently within an
+  open window (uses real current hour, not the scrubbed `t`). Shows all qualifying
+  items regardless of confidence.
+- The star on each card adds/removes; the ledger opener carries the pulsing live
+  badge.
+- NOTE: there is **no confidence field on entity data yet** — the data-honesty
+  ladder (confirmed/scheduled/likely/unverified) is a principle but not a wired
+  field. The watchlist currently shows items without a confidence label. Adding
+  the field is the natural next step once real data lands (see roadmap).
+
+---
+
+## Deployment & workflow (how this repo is actually operated)
+
+- **Live in production at `localoffline.online`** (apex + `www`). Domain
+  registered at **Squarespace Domains**; hosted on **Vercel**, which auto-deploys
+  the **`main`** branch on every push. DNS: apex A record + `www` CNAME to the
+  Vercel-provided target (Squarespace Defaults preset was removed). SSL is
+  auto-provisioned by Vercel.
+- **GitHub (`johnsonadamc/compass`) is the single source of truth.** Three copies
+  sync only through it: Claude Code's sandbox (pushes), the user's Codespaces
+  (pulls/tests), and Vercel (deploys `main`).
+- **Branch model:** `main` = live/published, **sacred — only receives tested work
+  via merge, never direct commits** (a push to `main` deploys to the public domain
+  instantly). Work happens on a **per-session feature branch**; Claude Code's web
+  sessions tend to spin up a fresh branch each time (e.g. `claude/...`). That's
+  fine **as long as the branch was created from current `main`** — every session
+  should verify with `git log HEAD..origin/main --oneline` (must be empty). The
+  most recent work branch was `claude/pensive-johnson-uiOh7`.
+- **The standard loop:** Claude Code builds on the branch → pushes → user pulls in
+  Codespaces (`git checkout <branch> && git pull`) and tests
+  (`python3 -m http.server 8000`, hard-refresh, BOTH modes, real phone for
+  sensor/safe-area) → user merges to `main` (`git checkout main && git pull &&
+  git merge <branch> && git push`) → Vercel auto-deploys → user returns Codespaces
+  to `main`. Vercel **branch previews** let the user test a branch on a real phone
+  before merging, without touching `main`.
+
+## CRITICAL verification reality (do not skip)
+
+**Claude Code's sandbox CANNOT load the app** — the CDN (React/Babel/fonts) is
+blocked there, so the page cannot bootstrap. This means Claude Code's "verified"
+can only mean *"the logic/static analysis looks right,"* NEVER *"it renders."*
+Two black-screen crashes have shipped from reports of success that never loaded
+the page. Therefore:
+- Claude Code must do whatever static verification it can, then **explicitly state
+  it could NOT confirm a clean browser render** and that the user must test.
+- It must **never claim the app renders cleanly** without having loaded it.
+- The user's Codespaces load is the real gate. **Never merge a commit that touches
+  `data.jsx` or core load-time code without loading it in Codespaces first.**
+- A runtime error in `data.jsx` (loads first) white/black-screens everything —
+  always check the browser console (F12) for the first red error when debugging a
+  blank screen.
+
+## Working agreements for Claude Code
+
+- **Read the file before editing.** This doc is intent; source is truth.
+- **For changes to core/load-time code or anything risky, work PLAN-FIRST**:
+  read everything and report a written plan + open questions before editing.
+  (Geolocation, the compass, and the date logic were all done this way and it
+  caught real bugs before they shipped.)
+- **One concern per commit.** Report branch + new HEAD hash after pushing.
+- **Verify-then-report honestly** per the verification-reality section above.
+  Never report a clean render you didn't witness. Don't commit test scaffolding
+  (`node_modules`, patched servers, screenshots).
+- **Preserve:** CSS-variable theming (never hardcode hex), `index.html` script
+  load order, the responsive dvh/safe-area/computed-dial-size layout, MODES-driven
+  navigation, the capped/swipe-dismiss bottom sheets, the YOU-hub-tap activation
+  flow, the compass listener teardown, the real-date logic & `WEEK_OFFSET`, and
+  food-mode behavior when working on events (and vice versa).
+- **Keep the engine/vertical separation** — neutral engine, content in mode
+  config; extend via MODES + the normalizer, not by branching the engine.
+- **If you cannot push or hit an auth/permissions wall, STOP and tell the user.
+  Do NOT read tokens, env vars, or credential files, or try to work around the
+  credential boundary.** Commit and report the branch; the user pushes/merges.
+- **Don't invent content/data** — entity names/hours/venues/coordinates come from
+  the user (ground truth) or are explicitly marked unverified/derived.
+- For changes that touch behavior the user cares about (dial feel, radius, naming,
+  the no-list constraint, mode navigation), confirm direction first.
 
 ---
 
@@ -89,105 +307,61 @@ so do it as one deliberate refactor and verify the app loads after. Not urgent.
 
 - **No build step.** `index.html` loads React 18 + ReactDOM + Babel standalone
   from CDN, then loads each component as `<script type="text/babel" src="...">`.
-  Babel transpiles JSX in the browser. Fine for prototyping, not production-grade.
-- **Components are global, not ES modules.** Each `.jsx` defines things on the
-  global scope / `window`; later files depend on earlier ones. **Load order in
-  `index.html` matters.** Current order: data → glyphs → field → console → card →
-  eventcard → drawer → app. (The `tweaks-panel.jsx` dev panel was removed.)
-  Respect the order; new files must be inserted at the right point.
-- **Must be served over HTTP**, not `file://`. Use `python3 -m http.server 8000`.
+  Babel transpiles JSX in the browser. **Load order in `index.html` matters**
+  (components are global, not ES modules; later files depend on earlier ones):
+  data → glyphs → field → console → sheet → card → eventcard → drawer → app.
+  (`sheet.jsx` provides `useSwipeDismiss`; it must load before any sheet consumer.
+  `tweaks-panel.jsx` was removed.) New files must be inserted at the right point.
+- **Must be served over HTTP** for local dev (`python3 -m http.server 8000`), not
+  `file://`. Production is HTTPS via Vercel (required for geolocation/compass).
 - **CDN integrity hashes** are on the React/Babel tags; update or remove them if
   you change versions.
 - **Styling is one big `<style>` block in `index.html`**, driven by CSS custom
   properties (`--paper`, `--ink`, `--verm`, `--blue`, etc.). **Always theme via
   these variables — never hardcode hex.**
-- **Mobile-first responsive web app** (not a fixed phone mockup, not a native
-  app). The `.stage` fills the viewport. Key responsive details already in place,
-  do not regress them:
-  - Uses `100dvh` (with `100vh` fallback) so the stage respects mobile browser
-    chrome (Safari's toolbar).
-  - Uses `env(safe-area-inset-bottom)` padding so the console clears the iOS home
-    bar; `<meta viewport>` includes `viewport-fit=cover`.
-  - A thin border (`.frame-rule`) hugs the viewport edge — keep it.
-  - The dial radius is **computed from available space** between the measured top
-    zone and the console (not a fixed size). Radius cap is ~`w * 0.46`. The top
-    elements (header, lens, chips) live in a flowing `.top-zone`; the dial sizes
-    into what's left so nothing overlaps.
-- **Storage:** `localStorage`/`sessionStorage` are fine in this real repo. Use
-  for watchlist persistence, last mode, etc. (watchlist persistence not yet done).
-
----
+- **Mobile-first responsive web app.** Preserve: `100dvh`/`100vh` fallback,
+  `env(safe-area-inset-bottom)` padding + `viewport-fit=cover`, the `.frame-rule`
+  inset border, and the **computed dial radius** (sized from available space
+  between the measured top zone and the console; cap ~`w*0.46`). Mobile-chrome /
+  safe-area behavior can ONLY be verified on a real phone.
+- **Storage:** `localStorage` is in use (watchlist persistence). Fine to use for
+  last-mode, etc.
 
 ## Data model (`data.jsx`)
 
 ### Trucks (FOOD mode)
-- `TRUCKS[]`: `id`, `name`, `cuisine`, `glyph`, `price` (1–3), `cravings[]`,
-  `signature`, `blurb`, `favorite`, `locations[]` (`{ name, bearing°, dist mi }`),
-  `week[]` (7 entries, day 0 = today; each `e(locIndex, openHour, closeHour)` or
-  `null` for a day off; hours are decimal, e.g. `17.5` = 5:30pm).
+- `TRUCKS[]`: `id`, `name`, `cuisine`, `glyph` (a category glyph id), `price`
+  (1–3), `cravings[]` (new taxonomy ids), `signature`, `blurb`, `favorite`,
+  `locations[]` (`{ name, bearing°, dist mi, latLng:{lat,lng} }`), `week[]` (7
+  entries, positionally Tuesday-baseline; each `e(locIndex, openHour, closeHour)`
+  or `null`; decimal hours). Seed trucks have DERIVED (unverified) `latLng`s.
 - `CRAVINGS[]`: filter chips `{ id, label, glyph, tag }`; `tag:null` = ALL.
-- Current seed is a small set of **real Pensacola trucks** (Brown Bagger, MI SU,
-  Globetrotter, Flourish, Sut-Shi) with estimated geometry and unverified hours,
-  flagged in comments. Don't treat hours/positions as confirmed.
 
 ### Events (EVENTS mode)
-- `EVENTS[]`: `id`, `name`, `venue`, `category` (one of the EVENT_CATEGORIES),
-  `blurb`, `price` (string, e.g. "Free" / "$25"), optional `ticketUrl`,
-  location `{ bearing, dist }`, and `occurrences[]` — each
-  `{ dayIdx, start, end }` (dayIdx 0–6 into DAYS; decimal hours). One-off events
-  have one occurrence; multi-day have several. This replaces the truck
-  `week[]`/`locations[]` for events only.
-- `EVENT_CATEGORIES[]`: parallel to CRAVINGS — music, market, class, comedy,
-  kids, nightlife, arts (+ all). Drives the lens in events mode.
-- `eventToEntity()`: normalizes an event into the truck-like entity shape so the
-  shared engine renders it unchanged.
+- `EVENTS[]`: `id`, `name`, `venue`, `category` (new taxonomy id), `blurb`,
+  `price` (string), optional `ticketUrl`, `location` (`{ bearing, dist, latLng }`),
+  `occurrences[]` (`{ dayIdx, start, end }`, dayIdx Tuesday-baseline, decimal
+  hours). `eventToEntity()` normalizes into the truck shape (carrying `latLng`).
+- `EVENT_CATEGORIES[]`: parallel to CRAVINGS, drives the events lens.
 
-### Shared
-- `DAYS[]`: rolling 7-day window; day 0 = today (prototype pins a fixed date).
-- Helpers on `window.DYNAMO`: `planFor`, `powerAt`, `statusAt`, `bodyPos`
-  (`dist` clamped to a ~2-mile rim via `dist/2`), `walkMin`, `upcomingWindows`,
-  plus time/format/math utilities. Event equivalents reuse these via the
-  normalizer.
-
-**Geometry:** the rim ≈ 2 miles; farther pins to the edge. Service radius / where
-"YOU" is centered is still an open product decision — don't hardcode around it.
-
----
-
-## Design language (keep consistent)
-
-- **Aesthetic:** 1920s–30s Art Deco / machine-age, instrument-like. A precision
-  dial, not a cute map.
-- **Type:** Archivo Black (`--deco`, display/logo/numerals), Oswald (`--cond`,
-  condensed all-caps labels), Josefin Sans (`--sans`, italic serif flavor).
-- **Palette (noir default):** near-black ground (`--ink`), warm cream paper
-  (`--paper`) for active surfaces, **vermillion** (`--verm`) = primary
-  energy/active, **sky blue** (`--blue`) reserved *only* for "watched" items.
-- **Wordmark:** `OFFLINE` dominant + `//[MODE]` as a smaller subordinate suffix
-  in the accent color, with a caret indicating it's the mode switcher. Uppercase,
-  Deco face. Header is kept calm and compact — one primary row (wordmark + live
-  count) plus a single quiet subtitle line; avoid reintroducing header clutter.
-- **Motion:** swift, diagonal throttle momentum, smooth glides when entities
-  move, sonar pulses. Emblems have CSS position transitions — preserve them.
-- **Tone:** terse, mechanical, confident. "SET THE HOUR. FIND THE FOOD." /
-  "FIND THE FUN." (events). All-caps, clipped.
-- **Bottom sheets** (truck card, event card, watchlist ledger) are **capped at
-  ~90dvh**, have a visible grip handle, scroll internally via a `.card-body`
-  wrapper, and **swipe-down-to-close** from the grip/header. They must NEVER grow
-  to full-screen-untappable (that was a freeze bug — see below). Scrim tap also
-  closes them.
+### Shared / engine (`window.DYNAMO`)
+- Time/date: `nowInCity`, `cityNow`, `WEEK_OFFSET`, `todayHour`/`realNowHour`,
+  `DAYS[]` (real rolling 7-day window, day 0 = today, Central).
+- Geo: `haversineMi`, `geoBearing`, destination-point derivation, `CITIES`,
+  `DEFAULT_CITY`, `DEFAULT_RIM_MI`.
+- Placement/status: `planFor` (geo-aware, WEEK_OFFSET-applied), `powerAt`,
+  `statusAt`, `bodyPos`, `walkMin`, `upcomingWindows`, plus format/math utils.
 
 ---
 
 ## Data honesty (load-bearing product principle)
 
-Real-world location/hours data decays fast and public sources are unreliable
-(we got burned trusting stale web data — even an "available" source described a
-venue that didn't exist yet). The product **shows confidence rather than faking
-certainty**: confirmed / scheduled / likely / unverified. Never present an
-unverified guess as fact. **Don't invent data** — truck/event names, hours,
-venues come from the user (ground truth) or are explicitly marked unverified.
-Seed data should be real and current, or labeled.
+Real-world location/hours data decays fast and public sources are unreliable. The
+product **shows confidence rather than faking certainty**: confirmed / scheduled /
+likely / unverified. Never present an unverified guess as fact. **Don't invent
+data** — names, hours, venues, coordinates come from the user (ground truth) or
+are explicitly marked unverified/derived. Seed data is real-ish but its hours and
+DERIVED coordinates are NOT confirmed and are labeled as such.
 
 The planned real-data pipeline (not built): trucks/venues self-report via SMS →
 AI parses freeform texts into structured occurrences → confidence labels →
@@ -197,66 +371,27 @@ the intended path is partnering with that aggregator, not scraping.
 
 ---
 
-## Known open work / roadmap
+## Roadmap / open work
 
-**Watchlist redesign (next big design task, discussed, not built):** evolve the
-watchlist from "starred items" into the app's cross-mode memory + proactive
-layer:
-- One saved collection spanning all modes, grouped by type, with the current
-  mode's items on top.
-- A "HAPPENING NOW NEAR YOU" section surfacing saved items that are live/nearby
-  today (proactive when opened; true push needs a later PWA "Add to Home Screen"
-  step — a static web app can't push notifications).
-- A live badge on the watchlist tab when a saved item is on.
+**Immediate next (highest leverage):**
+- **Get real, verified data in.** The engine is fully real (placement, time,
+  glyphs); the *data* is still derived/estimated seed. Entering even a few real
+  trucks/events with real geocoded `latLng`s and real hours is the make-or-break
+  step and the first true test of the premise. (Founder task; then a Claude Code
+  prompt to add the structured entries.)
+- **Confidence field.** Add confirmed/scheduled/likely/unverified to entity data
+  and surface it (esp. in the card and the watchlist "HAPPENING NOW"). Hollow
+  without real data; do it alongside/after the first real entries.
 
 **Other open items:**
-- Events filters/glyphs polish; confirm category set feels right.
+- Real GPS for Guide Me (`watchPosition`).
 - Rush heat-band on the throttle (peak hours).
 - Graceful empty states when few entities are open.
-- Give the YOU hub a tap action (recenter compass / reset zoom).
 - Closed entities hint their next opening rather than only ghosting.
-- Real GPS for Guide Me (`watchPosition`).
-- Watchlist persistence via localStorage.
-- Glyph gaps: burger/pizza/global stand-ins still in food seed data.
+- Revisit `DEFAULT_RIM_MI` (5mi) once real spread-out coordinates exist.
+- Data should eventually live outside `data.jsx` (a JSON file, then the SMS/
+  aggregator pipeline) — editing code to change a truck's hours doesn't scale.
+- PWA / Add to Home Screen (prerequisite for any real push notifications).
+- A favicon (currently 404s — harmless).
 - Eventual: Vite + React migration (off in-browser Babel); `window.DYNAMO`
-  rename. Do each as its own isolated, confirmed commit.
-
----
-
-## Working agreements for Claude Code
-
-- **Read the file before editing.** This doc is intent; source is truth.
-- **After making changes, serve the app and confirm it RENDERS with no console
-  errors — in BOTH food and events modes — before reporting success.** (We have
-  shipped a black-screen crash because a change was committed without ever
-  loading the page. Don't repeat that. A `props is not defined` / similar runtime
-  error white/black-screens the whole app.)
-- **One concern per commit**, so changes can be tested and reverted in isolation.
-- **Preserve:** design tokens (CSS-vars only), load order, the responsive
-  dvh/safe-area/computed-dial-size layout, the MODES-driven navigation, the
-  capped/swipe-dismiss bottom sheets, and food-mode behavior when working on
-  events (and vice versa).
-- **Keep the engine/vertical separation** — neutral engine, content in the mode
-  config; extend via MODES + a normalizer, not by branching the engine.
-- **If you cannot push or hit an auth/permissions wall, STOP and tell the user.
-  Do NOT read tokens, env vars, or credential files, or try to work around the
-  credential boundary.** Commit and report the branch; the user pushes/merges.
-- **Don't invent content/data.** Mark anything unverified.
-- For changes that touch behavior the user cares about (dial feel, radius,
-  naming, the no-list constraint, mode navigation), confirm direction first.
-
----
-
-## Workflow notes (how this repo is actually operated)
-
-- The user runs **Claude Code as web sessions**, which work in an isolated
-  sandbox checkout. Commits only reach the user after the session **pushes** to
-  `origin/<branch>` and the user **pulls** in their Codespace. Always push at the
-  end of a session and report the branch + latest commit hash.
-- Active work branch: `claude/nice-edison-HQiBz` (or its successor). `main` is the
-  baseline — periodically the user merges the work branch into `main` via PR to
-  reset a clean baseline. If something looks "reverted to an old version," the
-  user is probably just sitting on `main`.
-- The user tests in GitHub Codespaces (`git pull` -> `python3 -m http.server 8000`
-  -> hard-refresh) and on a real phone via the forwarded `app.github.dev` URL.
-  Mobile-chrome/safe-area behavior can ONLY be verified on the real phone.
+  rename to a neutral name. Each as its own isolated, confirmed commit.
