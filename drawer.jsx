@@ -26,8 +26,8 @@ function HappeningNow({ items, t, userPos, onPick, onWatch }) {
   const D = window.DYNAMO;
   const DGlyph = window.DGlyph;
   const uLat = userPos?.lat, uLng = userPos?.lng;
-  // day 0 = today always for "happening now"
-  const live = items.filter(e => D.powerAt(e, t, 0) > 0.5);
+  // day 0 = today; use real unclamped Central time, not the scrubber position
+  const live = items.filter(e => D.powerAt(e, D.realNowHour, 0) > 0.5);
   if (live.length === 0) return null;
   return (
     <div className="ledger-section">

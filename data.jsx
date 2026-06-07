@@ -15,18 +15,48 @@ function fmtTime(t) {
 const fmtHourShort = (h) => `${(h % 12) || 12}${h >= 12 ? "P" : "A"}`;
 const fmtHM = (t) => { const f = fmtTime(t); return `${f.hh}:${f.mm}${f.ampm[0].toLowerCase()}`; };
 
-/* WEEK — day 0 is "today". Deterministic so the prototype is stable.
-   Today = Tuesday the 23rd. */
 const WEEKDAYS = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
-const BASE_WEEKDAY = 2;  // Tuesday
-const BASE_DATE = 23;
+
+// Weekday the truck week[] arrays were authored from. Index 0 of each week[]
+// corresponds to this weekday. Do NOT change without re-authoring all schedule data.
+const AUTHOR_BASE_WD = 2; // Tuesday
+
+// Get current date/time in an IANA timezone without depending on the device locale.
+function nowInCity(tz) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric", month: "numeric", day: "numeric",
+    hour: "numeric", hour12: false, weekday: "short",
+    minute: "numeric",
+  }).formatToParts(new Date());
+  const get = (type) => parseInt(parts.find(p => p.type === type)?.value || "0", 10);
+  const weekdayStr = parts.find(p => p.type === "weekday")?.value || "Sun";
+  const wdMap = { Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6 };
+  return {
+    year: get("year"), month: get("month"), day: get("day"),
+    hour: get("hour"), minute: get("minute"),
+    weekday: wdMap[weekdayStr] ?? 0,
+  };
+}
+
+const cityNow = nowInCity(CITIES[DEFAULT_CITY].timezone);
+// How many slots to rotate when looking up truck.week[] for the real weekday.
+const WEEK_OFFSET = (cityNow.weekday - AUTHOR_BASE_WD + 7) % 7;
+// Real current hour as decimal (quarter-hour precision) for throttle initialization.
+const todayHour = cityNow.hour + Math.round(cityNow.minute / 15) * 0.25;
+// Real unclamped hour for "happening right now" truth (not clamped to DAY_START).
+const realNowHour = cityNow.hour + cityNow.minute / 60;
+
+// Rolling 7-day window from today's real Central date; uses Date arithmetic so
+// month and year boundaries are handled correctly by the JS engine.
 const DAYS = Array.from({ length: 7 }, (_, d) => {
-  const wd = (BASE_WEEKDAY + d) % 7;
+  const dt = new Date(cityNow.year, cityNow.month - 1, cityNow.day + d);
+  const wd = dt.getDay(); // 0=Sun
   return {
     idx: d,
     key: d === 0 ? "TODAY" : WEEKDAYS[wd],
     weekday: WEEKDAYS[wd],
-    date: ((BASE_DATE + d - 1) % 30) + 1,
+    date: dt.getDate(),
     today: d === 0,
   };
 });
@@ -46,6 +76,7 @@ const CITIES = {
     label: "Pensacola, FL",
     hubLabel: "GARDEN & PALAFOX",
     center: { lat: 30.4097, lng: -87.2169 },
+    timezone: "America/Chicago",
   },
 };
 const DEFAULT_CITY = "pensacola";
@@ -198,7 +229,7 @@ const compassDir = (bearing) => DIRS[Math.round(((bearing % 360) / 45)) % 8];
 // Optional userLat/userLng: when provided and the location has a latLng, bearing and dist
 // are computed from real geography; otherwise falls back to stored estimated values.
 function planFor(truck, day, userLat, userLng) {
-  const ent = truck.week[day]; if (!ent) return null;
+  const ent = truck.week[(day + WEEK_OFFSET) % 7]; if (!ent) return null;
   const loc = truck.locations[ent.loc] || truck.locations[0];
   let bearing = loc.bearing, dist = loc.dist;
   if (userLat != null && userLng != null && loc.latLng) {
@@ -334,6 +365,7 @@ window.DYNAMO = {
   fmtTime, fmtHourShort, fmtHM, clamp, lerp, smoothstep,
   compassDir, planFor, powerAt, statusAt, bodyPos, walkMin, upcomingWindows,
   eventToEntity, haversineMi, geoBearing, geoDestination,
+  todayHour, realNowHour, WEEK_OFFSET,
 };
 window.TRUCKS = TRUCKS;
 window.CRAVINGS = CRAVINGS;

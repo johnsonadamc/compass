@@ -13,7 +13,7 @@ function App() {
 
   const [mode, setMode] = useState("food"); // "food" | "events"
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
-  const [t, setT] = useState(12.0);
+  const [t, setT] = useState(() => D.clamp(D.todayHour, D.DAY_START, D.DAY_END));
   const [day, setDay] = useState(0);
   const [craving, setCraving] = useState(0);
   const [cardId, setCardId] = useState(null);
@@ -307,13 +307,13 @@ function App() {
   const openCount = entities.filter(e => D.powerAt(e, t, day) > 0.5).length;
   const openLabel = mode === "food" ? "OPEN\nNOW" : "ON\nNOW";
 
-  // live badge: watched items open right now (today = day 0) at current throttle time
+  // live badge: watched items open RIGHT NOW (real unclamped Central time, today = day 0)
   const allWatchedEntities = useMemo(() => {
     const trucks = (window.TRUCKS || []).filter(tr => watched.has(tr.id));
     const events = (window.EVENTS || []).filter(ev => watched.has(ev.id)).map(D.eventToEntity);
     return [...trucks, ...events];
   }, [watched]);
-  const liveWatchedCount = allWatchedEntities.filter(e => D.powerAt(e, t, 0) > 0.5).length;
+  const liveWatchedCount = allWatchedEntities.filter(e => D.powerAt(e, D.realNowHour, 0) > 0.5).length;
 
   return (
     <div className={"stage pal-" + tweaks.palette} style={{ "--console-h": "124px" }}>
