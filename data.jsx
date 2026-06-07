@@ -93,7 +93,7 @@ const e = (loc, open, close) => ({ loc, open, close });
    replace with real geocoded coordinates once confirmed. */
 const TRUCKS = [
   { id:"bao", name:"BAO & ARROW", cuisine:"Steamed buns", glyph:"bao", price:2,
-    cravings:["savory","fresh"], signature:"Five-spice pork bao", blurb:"Pillowy buns, folded to order.",
+    cravings:["asian"], signature:"Five-spice pork bao", blurb:"Pillowy buns, folded to order.",
     favorite:true,
     locations:[
       { name:"Palafox & Garden", bearing:350, dist:0.6,
@@ -104,7 +104,7 @@ const TRUCKS = [
     week:[ e(0,11,15), e(0,11,15), e(1,11,15), e(0,11,15), e(1,12,16), null, e(0,11,15) ] },
 
   { id:"green", name:"VERDIGRIS", cuisine:"Grain bowls", glyph:"leaf", price:2,
-    cravings:["fresh","savory"], signature:"Charred broccolini bowl", blurb:"Market greens, big crunch.",
+    cravings:["global"], signature:"Charred broccolini bowl", blurb:"Market greens, big crunch.",
     favorite:false,
     locations:[
       { name:"Wright & Spring", bearing:312, dist:1.05,
@@ -115,7 +115,7 @@ const TRUCKS = [
     week:[ e(0,10.5,16), e(0,10.5,16), e(0,10.5,16), e(1,10.5,16), e(1,11,15), null, e(0,10.5,16) ] },
 
   { id:"gyro", name:"AEGEAN WHEELS", cuisine:"Greek gyros", glyph:"gyro", price:2,
-    cravings:["savory"], signature:"Lamb gyro, tzatziki", blurb:"Spit-roasted all day long.",
+    cravings:["tacos"], signature:"Lamb gyro, tzatziki", blurb:"Spit-roasted all day long.",
     favorite:false,
     locations:[
       { name:"12th & Cervantes", bearing:36, dist:1.3,
@@ -124,7 +124,7 @@ const TRUCKS = [
     week:[ e(0,11,21), e(0,11,21), e(0,11,21), e(0,11,21), e(0,11,21), e(0,12,20), e(0,11,21) ] },
 
   { id:"cluck", name:"CLUCK TRUCK", cuisine:"Nashville hot", glyph:"drum", price:2,
-    cravings:["savory","spicy"], signature:"Hot honey tenders", blurb:"Brined 24 hrs, dredged loud.",
+    cravings:["burgers"], signature:"Hot honey tenders", blurb:"Brined 24 hrs, dredged loud.",
     favorite:false,
     locations:[
       { name:"Gregory & 9th",     bearing:80,  dist:1.55,
@@ -135,7 +135,7 @@ const TRUCKS = [
     week:[ e(0,11,22), e(0,11,22), e(1,11,22), e(1,11,22), e(1,12,22), e(0,12,21), null ] },
 
   { id:"tacos", name:"BRASA", cuisine:"Al pastor tacos", glyph:"taco", price:1,
-    cravings:["spicy","savory"], signature:"Al pastor + piña", blurb:"Trompo carved off the flame.",
+    cravings:["tacos"], signature:"Al pastor + piña", blurb:"Trompo carved off the flame.",
     favorite:true,
     locations:[
       { name:"Palafox & Garden", bearing:120, dist:0.72,
@@ -146,7 +146,7 @@ const TRUCKS = [
     week:[ e(0,11,22), e(0,11,22), e(0,11,22), e(1,11,22), e(1,12,22), e(0,12,22), e(0,11,22) ] },
 
   { id:"reel", name:"REEL CATCH", cuisine:"Gulf seafood", glyph:"fish", price:3,
-    cravings:["seafood","savory"], signature:"Royal red shrimp roll", blurb:"Off the boat this morning.",
+    cravings:["seafood"], signature:"Royal red shrimp roll", blurb:"Off the boat this morning.",
     favorite:false,
     locations:[
       { name:"Bayfront Marina", bearing:176, dist:1.1,
@@ -155,7 +155,7 @@ const TRUCKS = [
     week:[ e(0,17,22), e(0,17,22), e(0,17,22), e(0,17,22), e(0,17,22), e(0,17,21), null ] },
 
   { id:"sugar", name:"SUGAR THEORY", cuisine:"Soft serve", glyph:"cone", price:1,
-    cravings:["sweet"], signature:"Brown-butter twist", blurb:"Churned in small batches.",
+    cravings:["sweets"], signature:"Brown-butter twist", blurb:"Churned in small batches.",
     favorite:false,
     locations:[
       { name:"Plaza Ferdinand", bearing:222, dist:0.55,
@@ -164,7 +164,7 @@ const TRUCKS = [
     week:[ e(0,12,22), e(0,12,22), e(0,12,22), e(0,12,22), e(0,12,22), e(0,12,20), e(0,12,22) ] },
 
   { id:"roast", name:"MERIDIAN ROASTERS", cuisine:"Coffee & buns", glyph:"bean", price:1,
-    cravings:["caffeine"], signature:"Cardamom cold brew", blurb:"First light, first pour.",
+    cravings:["coffee"], signature:"Cardamom cold brew", blurb:"First light, first pour.",
     favorite:false,
     locations:[
       { name:"Intendencia & Jeff.", bearing:270, dist:0.9,
@@ -176,13 +176,14 @@ const TRUCKS = [
 ];
 
 const CRAVINGS = [
-  { id:"all",      label:"ALL",    glyph:"all",   tag:null },
-  { id:"spicy",    label:"SPICY",  glyph:"flame", tag:"spicy" },
-  { id:"savory",   label:"SAVORY", glyph:"drum",  tag:"savory" },
-  { id:"fresh",    label:"FRESH",  glyph:"leaf",  tag:"fresh" },
-  { id:"seafood",  label:"SEA",    glyph:"fish",  tag:"seafood" },
-  { id:"sweet",    label:"SWEET",  glyph:"cone",  tag:"sweet" },
-  { id:"caffeine", label:"COFFEE", glyph:"bean",  tag:"caffeine" },
+  { id:"all",      label:"ALL",               glyph:"all",      tag:null },
+  { id:"tacos",    label:"Tacos / Handhelds", glyph:"tacos",    tag:"tacos" },
+  { id:"burgers",  label:"Burgers / BBQ",     glyph:"burgers",  tag:"burgers" },
+  { id:"asian",    label:"Asian",             glyph:"asian",    tag:"asian" },
+  { id:"seafood",  label:"Seafood",           glyph:"seafood",  tag:"seafood" },
+  { id:"sweets",   label:"Sweets / Treats",   glyph:"sweets",   tag:"sweets" },
+  { id:"coffee",   label:"Coffee / Drinks",   glyph:"coffee",   tag:"coffee" },
+  { id:"global",   label:"Global / Other",    glyph:"global",   tag:"global" },
 ];
 
 /* ---- math ---- */
@@ -252,14 +253,14 @@ function upcomingWindows(truck, fromDay, fromT, max = 3, userLat, userLng) {
 // so the existing Field, DYNAMO math, and watchlist code work unchanged.
 
 const EVENT_CATEGORIES = [
-  { id:"all",       label:"ALL",     glyph:"all",     tag:null },
-  { id:"music",     label:"MUSIC",   glyph:"note",    tag:"music" },
-  { id:"market",    label:"MARKET",  glyph:"tent",    tag:"market" },
-  { id:"class",     label:"CLASS",   glyph:"book",    tag:"class" },
-  { id:"comedy",    label:"COMEDY",  glyph:"mask",    tag:"comedy" },
-  { id:"kids",      label:"KIDS",    glyph:"balloon", tag:"kids" },
-  { id:"nightlife", label:"NIGHT",   glyph:"flame",   tag:"nightlife" },
-  { id:"arts",      label:"ARTS",    glyph:"star6",   tag:"arts" },
+  { id:"all",        label:"ALL",                 glyph:"all",        tag:null },
+  { id:"music",      label:"Music / Live",         glyph:"music",      tag:"music" },
+  { id:"markets",    label:"Markets",              glyph:"markets",    tag:"markets" },
+  { id:"arts",       label:"Arts / Culture",       glyph:"arts",       tag:"arts" },
+  { id:"classes",    label:"Classes / Workshops",  glyph:"classes",    tag:"classes" },
+  { id:"comedy",     label:"Comedy",               glyph:"comedy",     tag:"comedy" },
+  { id:"nightlife",  label:"Nightlife",            glyph:"nightlife",  tag:"nightlife" },
+  { id:"kids",       label:"Kids / Family",        glyph:"kids",       tag:"kids" },
 ];
 
 // occurrences: [{ dayIdx (0-6), start, end }] — decimal hours, within DAY_START/DAY_END
@@ -273,7 +274,7 @@ const EVENTS = [
     occurrences:[{ dayIdx:0, start:18, end:21 }, { dayIdx:5, start:17, end:21 }] },
 
   { id:"ev-market", name:"PALAFOX MARKET", venue:"Palafox Street",
-    category:"market", glyph:"tent", price:"Free",
+    category:"markets", glyph:"tent", price:"Free",
     blurb:"Local vendors, produce, and handmade goods.",
     location:{ bearing:350, dist:0.6, latLng:{ lat:30.418252, lng:-87.218649 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     occurrences:[{ dayIdx:6, start:8, end:14 }] },
@@ -285,7 +286,7 @@ const EVENTS = [
     occurrences:[{ dayIdx:4, start:20, end:22 }] },
 
   { id:"ev-yoga", name:"YOGA ON THE WATERFRONT", venue:"Bayfront Park",
-    category:"class", glyph:"book", price:"Free",
+    category:"classes", glyph:"book", price:"Free",
     blurb:"Sunrise flow, mats provided.",
     location:{ bearing:176, dist:1.1, latLng:{ lat:30.393818, lng:-87.215613 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     occurrences:[{ dayIdx:0, start:7, end:8.5 }, { dayIdx:2, start:7, end:8.5 }, { dayIdx:5, start:7, end:8.5 }] },
