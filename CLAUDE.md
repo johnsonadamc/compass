@@ -76,8 +76,9 @@ pattern is the established navigation for the whole app — preserve and extend 
 ### Food and Events are parallel, not merged
 Events were added as a **separate, additive code path** — food-mode behavior must
 keep working untouched. The clean mechanism is a normalizer (`eventToEntity()` in
-`data.jsx`) that converts an event into the same entity shape (`week[]`,
-`locations[]`, `cravings[]`, `_event`) the dial/math/watchlist already understand
+`data.jsx`) that converts an event into the same entity shape (`locations[]`,
+`recurrence[]`/`occurrences[]`, `cravings[]`, `_event`) the dial/math/watchlist
+already understand (the shared date-aware schedule model — see "Schedule model")
 — so `field.jsx`, the `window.DYNAMO` math, and the watchlist need no changes.
 Prefer this normalize-to-a-common-entity approach for future modes rather than
 branching the engine.
@@ -154,14 +155,17 @@ current date + time in Central (America/Chicago)** regardless of device timezone
   Central (DST handled by the browser's IANA database).
 - `DAYS[]` is rebuilt from the real Central date with calendar-correct math
   (`new Date(y, m-1, d+n)`), so month boundaries and weekday labels are correct.
-  Day 0 = real today.
-- **`WEEK_OFFSET` is critical:** truck/event `week[]` arrays are positionally
-  encoded relative to an authoring baseline of **Tuesday** (`AUTHOR_BASE_WD = 2`).
-  `planFor` reads `truck.week[(day + WEEK_OFFSET) % 7]` where
-  `WEEK_OFFSET = (realTodayWeekday - AUTHOR_BASE_WD + 7) % 7`, so the schedule
-  rotates correctly onto real weekdays. **Do not change `AUTHOR_BASE_WD` without
-  re-authoring all seed schedule data.** (This will matter less once real,
-  properly-dated data replaces the seed.)
+  Day 0 = real today. **Each `DAYS[]` entry carries `iso` (`"YYYY-MM-DD"`, built by
+  `isoOf()` from local getters — NOT `toISOString()`, which is UTC and rolls the
+  date) and `wd` (real `getDay()` weekday 0=Sun…6=Sat). These are what `planFor`
+  matches schedule data against.**
+- **Schedule data binds to REAL dates, not weekday slots** (this replaced the old
+  `week[]`/`WEEK_OFFSET`/`AUTHOR_BASE_WD` Tuesday-baseline machinery, now retired —
+  see "Schedule model" below). `planFor(entity, day, …)` resolves `DAYS[day]` → its
+  `iso`/`wd`, matches an explicit dated `occurrences[]` row first, else a weekly
+  `recurrence[]` pattern, and returns the **same** `{open, close, name, bearing,
+  dist} | null` contract — so `powerAt`/`statusAt`/`bodyPos`/`upcomingWindows`,
+  `field.jsx`, and the cards are unchanged.
 - The throttle **initializes** to the real Central hour (rounded to nearest
   quarter-hour, clamped to 7–22). It does **not** tick in real time — real time
   only seeds the initial handle position; scrubbing is manual thereafter.
@@ -174,9 +178,36 @@ current date + time in Central (America/Chicago)** regardless of device timezone
 the date/city machinery at module-load time. A forward reference there (using a
 `const` before its declaration) throws during parse, which prevents
 `window.DYNAMO` from being assigned, which black-screens the whole app. Keep
-declaration order correct in `data.jsx`: format helpers → CITIES/DEFAULT_CITY →
-constants → AUTHOR_BASE_WD → `nowInCity` → cityNow/WEEK_OFFSET/todayHour/
-realNowHour → DAYS → geo math.
+declaration order correct in `data.jsx`: format helpers (incl. `isoOf`) →
+CITIES/DEFAULT_CITY → constants → `nowInCity` → cityNow/todayHour/realNowHour →
+DAYS → geo math → TRUCKS → `planFor`/`windowTimes`.
+
+## Schedule model (date-aware occurrence/recurrence — SHIPPED, replaced week[]/WEEK_OFFSET)
+
+Trucks and events now share ONE date-aware schedule model; the old positional
+`week[]` array, the `e()` helper, `occurrences[].dayIdx`, `WEEK_OFFSET`, and
+`AUTHOR_BASE_WD` are **all retired**. Each entity (truck, and event after
+`eventToEntity`) carries:
+- `locations: [{ name, bearing, dist, latLng }]` — unchanged shape.
+- `occurrences: [{ date:"YYYY-MM-DD", start, end, loc }]` — explicit dated
+  appearances. A one-off **self-expires** once its date falls behind day 0, and an
+  explicit occurrence on a date **overrides** recurrence for that date.
+- `recurrence: [{ weekdays:[…], start, end, loc, from?, until? }]` — weekly
+  patterns, optionally bounded by inclusive `from`/`until` ISO dates.
+- `exceptions: ["YYYY-MM-DD"]` — dates on which a matching recurrence is
+  **cancelled**. Exceptions suppress recurrence ONLY; an explicit occurrence on the
+  same date still wins.
+- `loc` indexes `locations[]` (default 0); `start`/`end` are decimal hours.
+
+**WEEKDAY CONVENTION: JS `Date.getDay()` — 0=Sun, 1=Mon, …, 6=Sat.** Every
+`recurrence[].weekdays` number uses this scale; it's documented loudly at the top of
+`data.jsx`. Do not reintroduce a Tuesday-baseline or any other offset.
+
+`planFor` does date matching at **render time** (no load-time expansion loop). The
+throttle's snap points come from `DYNAMO.windowTimes(entity)` (collects every
+occurrence/recurrence start/end) so `app.jsx` never reads the model shape directly.
+The seed trucks/events are genuinely recurring, so they carry `recurrence` only (no
+fabricated calendar dates); real dated one-offs land as `occurrences[]` later.
 
 ---
 
@@ -289,7 +320,8 @@ the page. Therefore:
 - **Preserve:** CSS-variable theming (never hardcode hex), `index.html` script
   load order, the responsive dvh/safe-area/computed-dial-size layout, MODES-driven
   navigation, the capped/swipe-dismiss bottom sheets, the YOU-hub-tap activation
-  flow, the compass listener teardown, the real-date logic & `WEEK_OFFSET`, and
+  flow, the compass listener teardown, the real-date logic & the date-aware
+  schedule model (occurrences/recurrence; `getDay` 0=Sun weekday convention), and
   food-mode behavior when working on events (and vice versa).
 - **Keep the engine/vertical separation** — neutral engine, content in mode
   config; extend via MODES + the normalizer, not by branching the engine.
@@ -332,25 +364,30 @@ the page. Therefore:
 ### Trucks (FOOD mode)
 - `TRUCKS[]`: `id`, `name`, `cuisine`, `glyph` (a category glyph id), `price`
   (1–3), `cravings[]` (new taxonomy ids), `signature`, `blurb`, `favorite`,
-  `locations[]` (`{ name, bearing°, dist mi, latLng:{lat,lng} }`), `week[]` (7
-  entries, positionally Tuesday-baseline; each `e(locIndex, openHour, closeHour)`
-  or `null`; decimal hours). Seed trucks have DERIVED (unverified) `latLng`s.
+  `locations[]` (`{ name, bearing°, dist mi, latLng:{lat,lng} }`), and the
+  date-aware schedule fields `recurrence[]` / `occurrences[]` / `exceptions[]` (see
+  "Schedule model" — weekdays use `getDay` 0=Sun…6=Sat; `start`/`end` decimal
+  hours; `loc` indexes `locations[]`). Seed trucks are recurring → `recurrence`
+  only, with DERIVED (unverified) `latLng`s.
 - `CRAVINGS[]`: filter chips `{ id, label, glyph, tag }`; `tag:null` = ALL.
 
 ### Events (EVENTS mode)
 - `EVENTS[]`: `id`, `name`, `venue`, `category` (new taxonomy id), `blurb`,
   `price` (string), optional `ticketUrl`, `location` (`{ bearing, dist, latLng }`),
-  `occurrences[]` (`{ dayIdx, start, end }`, dayIdx Tuesday-baseline, decimal
-  hours). `eventToEntity()` normalizes into the truck shape (carrying `latLng`).
+  and the same date-aware schedule fields (`recurrence[]` / `occurrences[]` /
+  `exceptions[]`, `getDay` weekday convention). `eventToEntity()` normalizes the
+  single `location` into `locations[]` and carries the schedule fields straight
+  through into the shared entity shape.
 - `EVENT_CATEGORIES[]`: parallel to CRAVINGS, drives the events lens.
 
 ### Shared / engine (`window.DYNAMO`)
-- Time/date: `nowInCity`, `cityNow`, `WEEK_OFFSET`, `todayHour`/`realNowHour`,
-  `DAYS[]` (real rolling 7-day window, day 0 = today, Central).
+- Time/date: `nowInCity`, `cityNow`, `todayHour`/`realNowHour`, `DAYS[]` (real
+  rolling 7-day window, day 0 = today, Central; each entry carries `iso`/`wd`).
 - Geo: `haversineMi`, `geoBearing`, destination-point derivation, `CITIES`,
   `DEFAULT_CITY`, `DEFAULT_RIM_MI`.
-- Placement/status: `planFor` (geo-aware, WEEK_OFFSET-applied), `powerAt`,
-  `statusAt`, `bodyPos`, `walkMin`, `upcomingWindows`, plus format/math utils.
+- Placement/status: `planFor` (geo-aware, date-aware occurrence/recurrence
+  resolver), `windowTimes` (snap-point times), `powerAt`, `statusAt`, `bodyPos`,
+  `walkMin`, `upcomingWindows`, plus format/math utils.
 
 ---
 

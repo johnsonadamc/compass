@@ -61,11 +61,10 @@ function App() {
   [mode]);
   const activeCategories = mode === "food" ? window.CRAVINGS : window.EVENT_CATEGORIES;
 
-  // Snap points: all open/close times across all entities (fixed for food; events vary less)
+  // Snap points: all window start/end times across all entities. windowTimes (data.jsx)
+  // reads the schedule model so app.jsx stays ignorant of occurrences/recurrence shape.
   const KINDLE = useMemo(() => {
-    const times = entities.flatMap(e =>
-      e.week.filter(Boolean).map(w => [w.open, w.close]).flat()
-    );
+    const times = entities.flatMap(e => D.windowTimes(e));
     return [...new Set(times)].sort((a, b) => a - b);
   }, [entities]);
 
