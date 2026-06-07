@@ -92,7 +92,7 @@ const e = (loc, open, close) => ({ loc, open, close });
    latLng values are DERIVED FROM ESTIMATED GEOMETRY — not verified;
    replace with real geocoded coordinates once confirmed. */
 const TRUCKS = [
-  { id:"bao", name:"BAO & ARROW", cuisine:"Steamed buns", glyph:"bao", price:2,
+  { id:"bao", name:"BAO & ARROW", cuisine:"Steamed buns", glyph:"asian", price:2,
     cravings:["asian"], signature:"Five-spice pork bao", blurb:"Pillowy buns, folded to order.",
     favorite:true,
     locations:[
@@ -103,7 +103,7 @@ const TRUCKS = [
     ],
     week:[ e(0,11,15), e(0,11,15), e(1,11,15), e(0,11,15), e(1,12,16), null, e(0,11,15) ] },
 
-  { id:"green", name:"VERDIGRIS", cuisine:"Grain bowls", glyph:"leaf", price:2,
+  { id:"green", name:"VERDIGRIS", cuisine:"Grain bowls", glyph:"global", price:2,
     cravings:["global"], signature:"Charred broccolini bowl", blurb:"Market greens, big crunch.",
     favorite:false,
     locations:[
@@ -114,7 +114,7 @@ const TRUCKS = [
     ],
     week:[ e(0,10.5,16), e(0,10.5,16), e(0,10.5,16), e(1,10.5,16), e(1,11,15), null, e(0,10.5,16) ] },
 
-  { id:"gyro", name:"AEGEAN WHEELS", cuisine:"Greek gyros", glyph:"gyro", price:2,
+  { id:"gyro", name:"AEGEAN WHEELS", cuisine:"Greek gyros", glyph:"tacos", price:2,
     cravings:["tacos"], signature:"Lamb gyro, tzatziki", blurb:"Spit-roasted all day long.",
     favorite:false,
     locations:[
@@ -123,7 +123,7 @@ const TRUCKS = [
     ],
     week:[ e(0,11,21), e(0,11,21), e(0,11,21), e(0,11,21), e(0,11,21), e(0,12,20), e(0,11,21) ] },
 
-  { id:"cluck", name:"CLUCK TRUCK", cuisine:"Nashville hot", glyph:"drum", price:2,
+  { id:"cluck", name:"CLUCK TRUCK", cuisine:"Nashville hot", glyph:"burgers", price:2,
     cravings:["burgers"], signature:"Hot honey tenders", blurb:"Brined 24 hrs, dredged loud.",
     favorite:false,
     locations:[
@@ -134,7 +134,7 @@ const TRUCKS = [
     ],
     week:[ e(0,11,22), e(0,11,22), e(1,11,22), e(1,11,22), e(1,12,22), e(0,12,21), null ] },
 
-  { id:"tacos", name:"BRASA", cuisine:"Al pastor tacos", glyph:"taco", price:1,
+  { id:"tacos", name:"BRASA", cuisine:"Al pastor tacos", glyph:"tacos", price:1,
     cravings:["tacos"], signature:"Al pastor + piña", blurb:"Trompo carved off the flame.",
     favorite:true,
     locations:[
@@ -145,7 +145,7 @@ const TRUCKS = [
     ],
     week:[ e(0,11,22), e(0,11,22), e(0,11,22), e(1,11,22), e(1,12,22), e(0,12,22), e(0,11,22) ] },
 
-  { id:"reel", name:"REEL CATCH", cuisine:"Gulf seafood", glyph:"fish", price:3,
+  { id:"reel", name:"REEL CATCH", cuisine:"Gulf seafood", glyph:"seafood", price:3,
     cravings:["seafood"], signature:"Royal red shrimp roll", blurb:"Off the boat this morning.",
     favorite:false,
     locations:[
@@ -154,7 +154,7 @@ const TRUCKS = [
     ],
     week:[ e(0,17,22), e(0,17,22), e(0,17,22), e(0,17,22), e(0,17,22), e(0,17,21), null ] },
 
-  { id:"sugar", name:"SUGAR THEORY", cuisine:"Soft serve", glyph:"cone", price:1,
+  { id:"sugar", name:"SUGAR THEORY", cuisine:"Soft serve", glyph:"sweets", price:1,
     cravings:["sweets"], signature:"Brown-butter twist", blurb:"Churned in small batches.",
     favorite:false,
     locations:[
@@ -163,7 +163,7 @@ const TRUCKS = [
     ],
     week:[ e(0,12,22), e(0,12,22), e(0,12,22), e(0,12,22), e(0,12,22), e(0,12,20), e(0,12,22) ] },
 
-  { id:"roast", name:"MERIDIAN ROASTERS", cuisine:"Coffee & buns", glyph:"bean", price:1,
+  { id:"roast", name:"MERIDIAN ROASTERS", cuisine:"Coffee & buns", glyph:"coffee", price:1,
     cravings:["coffee"], signature:"Cardamom cold brew", blurb:"First light, first pour.",
     favorite:false,
     locations:[
@@ -268,43 +268,43 @@ const EVENT_CATEGORIES = [
 // replace with real geocoded coordinates once confirmed.
 const EVENTS = [
   { id:"ev-jazz", name:"JAZZ AT THE SQUARE", venue:"Seville Square",
-    category:"music", glyph:"note", price:"Free",
+    category:"music", glyph:"music", price:"Free",
     blurb:"Live jazz in the open air. Bring a blanket.",
     location:{ bearing:308, dist:1.1, latLng:{ lat:30.419501, lng:-87.231448 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     occurrences:[{ dayIdx:0, start:18, end:21 }, { dayIdx:5, start:17, end:21 }] },
 
   { id:"ev-market", name:"PALAFOX MARKET", venue:"Palafox Street",
-    category:"markets", glyph:"tent", price:"Free",
+    category:"markets", glyph:"markets", price:"Free",
     blurb:"Local vendors, produce, and handmade goods.",
     location:{ bearing:350, dist:0.6, latLng:{ lat:30.418252, lng:-87.218649 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     occurrences:[{ dayIdx:6, start:8, end:14 }] },
 
   { id:"ev-comedy", name:"STAND-UP NIGHT", venue:"The Handlebar",
-    category:"comedy", glyph:"mask", price:"$10",
+    category:"comedy", glyph:"comedy", price:"$10",
     blurb:"Local comics. No cover if you buy a drink.",
     location:{ bearing:85, dist:0.9, latLng:{ lat:30.410834, lng:-87.201854 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     occurrences:[{ dayIdx:4, start:20, end:22 }] },
 
   { id:"ev-yoga", name:"YOGA ON THE WATERFRONT", venue:"Bayfront Park",
-    category:"classes", glyph:"book", price:"Free",
+    category:"classes", glyph:"classes", price:"Free",
     blurb:"Sunrise flow, mats provided.",
     location:{ bearing:176, dist:1.1, latLng:{ lat:30.393818, lng:-87.215613 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     occurrences:[{ dayIdx:0, start:7, end:8.5 }, { dayIdx:2, start:7, end:8.5 }, { dayIdx:5, start:7, end:8.5 }] },
 
   { id:"ev-kids", name:"KIDS CRAFT HOUR", venue:"The Art Trail",
-    category:"kids", glyph:"balloon", price:"Free",
+    category:"kids", glyph:"kids", price:"Free",
     blurb:"Drop-in craft projects for ages 4–10.",
     location:{ bearing:222, dist:0.55, latLng:{ lat:30.403784, lng:-87.223076 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     occurrences:[{ dayIdx:1, start:10, end:12 }, { dayIdx:3, start:10, end:12 }] },
 
   { id:"ev-rooftop", name:"ROOFTOP SETS", venue:"Commerce St. Bar",
-    category:"nightlife", glyph:"flame", price:"$5",
+    category:"nightlife", glyph:"nightlife", price:"$5",
     blurb:"DJ sets with a view of the bay.",
     location:{ bearing:112, dist:0.75, latLng:{ lat:30.405633, lng:-87.205231 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     occurrences:[{ dayIdx:4, start:21, end:22 }, { dayIdx:5, start:21, end:22 }] },
 
   { id:"ev-gallery", name:"GALLERY FIRST FRIDAY", venue:"Artel Gallery",
-    category:"arts", glyph:"star6", price:"Free",
+    category:"arts", glyph:"arts", price:"Free",
     blurb:"New show opening. Wine and small plates.",
     location:{ bearing:290, dist:0.8, latLng:{ lat:30.413659, lng:-87.229516 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     occurrences:[{ dayIdx:4, start:18, end:21 }] },
