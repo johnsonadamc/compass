@@ -421,6 +421,153 @@ const EVENTS = [
     blurb:"New show opening. Wine and small plates.",
     location:{ bearing:290, dist:0.8, latLng:{ lat:30.413659, lng:-87.229516 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
     recurrence:[{ weekdays:[6], start:18, end:21 }] },  // Sat
+
+  // ── EVENTS BATCH (date-aware model) ──
+  // All events are single-venue → occurrence/recurrence rows omit `loc` (defaults to 0).
+  // weekdays use JS getDay(): 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat.
+  // glyph === category (matches the seed convention; eventToEntity reads ev.glyph).
+  // latLng = ESTIMATED from named address vs the Garden & Palafox anchor — NOT geocoded, UNVERIFIED.
+  // Dated occurrences are RE-DATED to the upcoming weekend (2026-06-12/-13/-14) FOR TESTING — synthetic dates.
+
+  // ───────── WEEKLY (recurrence — truthful, no fake dates) ─────────
+
+  { id:"ev-blues-on-the-blocks", name:"Blues on the Blocks", venue:"Five Sisters Blues Cafe", category:"music", glyph:"music",
+    blurb:"Weekend-kickoff blues, every Friday.", price:"Free",
+    location:{ bearing:315, dist:0.6, latLng:{ lat:30.4180, lng:-87.2235 } }, // ESTIMATED — 421 W Belmont St; UNVERIFIED
+    recurrence:[ { weekdays:[5], start:18, end:21 } ] },
+
+  { id:"ev-bottle-shop-wine", name:"Friday Night Wine Tastings on Baylen", venue:"The Bottle Shop", category:"nightlife", glyph:"nightlife",
+    blurb:"Ten bottle-shop pours in the JUSTA BAR courtyard, every Friday.", price:"Free",
+    location:{ bearing:215, dist:0.2, latLng:{ lat:30.4108, lng:-87.2188 } }, // ESTIMATED — 120 S Baylen St; UNVERIFIED
+    recurrence:[ { weekdays:[5], start:17, end:19 } ] },
+
+  { id:"ev-love-island-watch", name:"Love Island Watch Party", venue:"Margaritas Fusion", category:"nightlife", glyph:"nightlife",
+    blurb:"Themed cocktails and episodes on the big screens, every Friday & Monday.", price:"Free",
+    location:{ bearing:358, dist:5.7, latLng:{ lat:30.4950, lng:-87.2180 } }, // ESTIMATED — 7250 Plantation Rd; UNVERIFIED
+    recurrence:[ { weekdays:[5,1], start:19, end:22 } ] }, // multi-weekday: Fri + Mon
+
+  { id:"ev-healthy-cooking-coop", name:"Healthy Cooking Class w/ LauraLee", venue:"Ever'man Cooperative", category:"classes", glyph:"classes",
+    blurb:"Weekly Mediterranean / anti-inflammatory dish demo.", price:"$5–$10",
+    location:{ bearing:270, dist:0.2, latLng:{ lat:30.4128, lng:-87.2200 } }, // ESTIMATED — 315 W Garden St; UNVERIFIED
+    recurrence:[ { weekdays:[5], start:11, end:12 } ] },
+
+  { id:"ev-steam-kids", name:"Cooking with S.T.E.A.M.", venue:"The Makery (Pace)", category:"kids", glyph:"kids",
+    blurb:"Free weekly science-meets-cooking activity for kids.", price:"Free",
+    location:{ bearing:25, dist:13.5, latLng:{ lat:30.5950, lng:-87.1500 } }, // ESTIMATED — 4857 W Spencerfield Rd, Pace; UNVERIFIED — past rim
+    recurrence:[ { weekdays:[5], start:10, end:11 } ] },
+
+  { id:"ev-karaoke-prost", name:"Karaoke at The Prost Office", venue:"The Prost Office Brewery (Milton)", category:"nightlife", glyph:"nightlife",
+    blurb:"Weekly karaoke with Crystal Clear Sounds, craft beer and bites.", price:"Free",
+    location:{ bearing:40, dist:20, latLng:{ lat:30.6330, lng:-87.0400 } }, // ESTIMATED — 6821 Caroline St, Milton; UNVERIFIED — far past rim
+    recurrence:[ { weekdays:[5], start:19, end:22 } ] },
+
+  { id:"ev-palafox-market", name:"Palafox Market", venue:"Downtown Pensacola (MLK Plaza & Plaza Ferdinand)", category:"markets", glyph:"markets",
+    blurb:"Award-winning farmers & makers market, 200+ local vendors, every Saturday.", price:"Free",
+    location:{ bearing:180, dist:0.1, latLng:{ lat:30.4115, lng:-87.2168 } }, // ESTIMATED — downtown Palafox; UNVERIFIED
+    recurrence:[ { weekdays:[6], start:9, end:14 } ] },
+
+  { id:"ev-glenn-parker-band", name:"Glenn Parker Band", venue:"Five Sisters Blues Cafe", category:"music", glyph:"music",
+    blurb:"Soulful live blues, every Saturday.", price:"Free",
+    location:{ bearing:315, dist:0.6, latLng:{ lat:30.4180, lng:-87.2235 } }, // ESTIMATED — 421 W Belmont St; UNVERIFIED
+    recurrence:[ { weekdays:[6], start:18, end:22 } ] },
+
+  { id:"ev-dj-saturdays", name:"DJ Saturdays", venue:"O'Riley's Irish Pub Downtown", category:"nightlife", glyph:"nightlife",
+    blurb:"Live DJ spinning crowd favorites late, every Saturday.", price:"Free",
+    location:{ bearing:180, dist:0.25, latLng:{ lat:30.4095, lng:-87.2168 } }, // ESTIMATED — 321 S Palafox St; UNVERIFIED
+    recurrence:[ { weekdays:[6], start:22, end:23.75 } ] }, // fully past the 22:00 throttle ceiling
+
+  { id:"ev-storytime-am", name:"Storytime & Snacktime (Morning)", venue:"The Makery (Pace)", category:"kids", glyph:"kids",
+    blurb:"Food-themed story plus a treat — 10 AM sitting, Saturdays.", price:"Free",
+    location:{ bearing:25, dist:13.5, latLng:{ lat:30.5950, lng:-87.1500 } }, // ESTIMATED — 4857 W Spencerfield Rd, Pace; UNVERIFIED — past rim
+    recurrence:[ { weekdays:[6], start:10, end:10.5 } ] }, // split from the 2 PM sitting (one window per entity per day)
+
+  { id:"ev-storytime-pm", name:"Storytime & Snacktime (Afternoon)", venue:"The Makery (Pace)", category:"kids", glyph:"kids",
+    blurb:"Food-themed story plus a treat — 2 PM sitting, Saturdays.", price:"Free",
+    location:{ bearing:25, dist:13.5, latLng:{ lat:30.5950, lng:-87.1500 } }, // ESTIMATED — 4857 W Spencerfield Rd, Pace; UNVERIFIED — past rim
+    recurrence:[ { weekdays:[6], start:14, end:14.5 } ] }, // companion to the 10 AM entry
+
+  // ───────── DATED one-offs (re-dated to the upcoming weekend FOR TESTING) ─────────
+
+  { id:"ev-bodysnatcher", name:"Bodysnatcher", venue:"Vinyl Music Hall", category:"music", glyph:"music",
+    blurb:"Deathcore headliner with 200 Stab Wounds, Gates To Hell & Bodybox. All ages.", price:"$25+",
+    location:{ bearing:185, dist:0.15, latLng:{ lat:30.4105, lng:-87.2169 } }, // ESTIMATED — 2 S Palafox St; UNVERIFIED
+    occurrences:[ { date:"2026-06-12", start:18, end:22 } ] }, // one-off (orig Fri 6/5)
+
+  { id:"ev-mushroom-cloud", name:"Mushroom Cloud", venue:"The Handlebar", category:"music", glyph:"music",
+    blurb:"Heavy bass night with Hydyne, Matty Ice & Thaimex; live art and vendors. 18+.", price:"$30",
+    location:{ bearing:40, dist:0.5, latLng:{ lat:30.4170, lng:-87.2120 } }, // ESTIMATED — 319 N Tarragona St; UNVERIFIED
+    occurrences:[ { date:"2026-06-12", start:20, end:22 } ] }, // one-off; runs past 22
+
+  { id:"ev-comedy-arceneaux", name:"Stand-Up Comedy Night: Tyler Arceneaux", venue:"Bagelheads", category:"comedy", glyph:"comedy",
+    blurb:"Gulf Coast comics + headliner Tyler Arceneaux. BYOB, free parking.", price:"$5–$25",
+    location:{ bearing:60, dist:1.1, latLng:{ lat:30.4205, lng:-87.2030 } }, // ESTIMATED — 916 E Gregory St; UNVERIFIED
+    occurrences:[ { date:"2026-06-12", start:20.5, end:22 } ] }, // one-off
+
+  { id:"ev-sourdough-101", name:"Sourdough 101 Beginners Class", venue:"The Makery (Pace)", category:"classes", glyph:"classes",
+    blurb:"All-inclusive hands-on intro to sourdough; take home a starter and a loaf.", price:"$90",
+    location:{ bearing:25, dist:13.5, latLng:{ lat:30.5950, lng:-87.1500 } }, // ESTIMATED — 4857 W Spencerfield Rd, Pace; UNVERIFIED — past rim
+    occurrences:[ { date:"2026-06-12", start:18, end:20 } ] }, // one-off
+
+  { id:"ev-didgeridoo-biglagoon", name:"Didgeridoo Down Under", venue:"Big Lagoon State Park", category:"kids", glyph:"kids",
+    blurb:"Energetic interactive show blending Australian music, comedy and storytelling.", price:"$0–$6",
+    location:{ bearing:240, dist:13, latLng:{ lat:30.3080, lng:-87.4050 } }, // ESTIMATED — Big Lagoon State Park; UNVERIFIED — past rim
+    occurrences:[ { date:"2026-06-12", start:13, end:14 } ] }, // one-off
+
+  { id:"ev-first-fridays-artwalk", name:"First Fridays Art Walk", venue:"Joe Hobbs Gallery", category:"arts", glyph:"arts",
+    blurb:"Downtown gallery walk celebrating local artists and creative spaces.", price:"Free",
+    location:{ bearing:150, dist:0.35, latLng:{ lat:30.4100, lng:-87.2130 } }, // ESTIMATED — 260 S Tarragona St; UNVERIFIED
+    occurrences:[ { date:"2026-06-12", start:17.5, end:21 } ] }, // MONTHLY (really 1st Fri) — test-dated as single row
+
+  { id:"ev-arts-market-first-fri", name:"Pensacola Arts Market: First Fridays", venue:"Gary's Brewery & Biergarten", category:"markets", glyph:"markets",
+    blurb:"Open-air handmade art, vintage finds and baked goods with live music.", price:"Free",
+    location:{ bearing:5, dist:2.5, latLng:{ lat:30.4480, lng:-87.2130 } }, // ESTIMATED — 208 Newman Ave; UNVERIFIED
+    occurrences:[ { date:"2026-06-12", start:16, end:21 } ] }, // MONTHLY — test-dated as single row
+
+  { id:"ev-kitten-yoga", name:"Kitten Yoga", venue:"East Bay Dog Spot (Gulf Breeze)", category:"classes", glyph:"classes",
+    blurb:"Guided yoga surrounded by adoptable kittens; proceeds benefit the animal shelter.", price:"$25",
+    location:{ bearing:120, dist:7.5, latLng:{ lat:30.3720, lng:-87.1050 } }, // ESTIMATED — 4645 Gulf Breeze Pkwy; UNVERIFIED — past rim
+    occurrences:[ { date:"2026-06-13", start:15, end:16 } ] }, // one-off
+
+  { id:"ev-boozy-sundae", name:"Boozy Sundae Decorating Class", venue:"Tipsy Scoop Barlour", category:"classes", glyph:"classes",
+    blurb:"Build a boozy ice cream sundae downtown; keepsake glass + welcome drink. 21+.", price:"$35",
+    location:{ bearing:5, dist:0.25, latLng:{ lat:30.4160, lng:-87.2168 } }, // ESTIMATED — 194 N Palafox St; UNVERIFIED
+    occurrences:[ { date:"2026-06-13", start:16, end:17 } ] }, // one-off
+
+  { id:"ev-sinatra-tribute", name:"Sinatra Tribute Dinner Show", venue:"La Sala Event Center (Navarre)", category:"music", glyph:"music",
+    blurb:"Josh Sirten & The Tuxedo Cats perform Sinatra classics with dinner. 21+.", price:"$45",
+    location:{ bearing:92, dist:20, latLng:{ lat:30.4020, lng:-86.8800 } }, // ESTIMATED — 3352 Hwy 87 S, Navarre; UNVERIFIED — far past rim
+    occurrences:[ { date:"2026-06-13", start:18, end:22 } ] }, // one-off
+
+  { id:"ev-family-fun-day", name:"Family Fun Day", venue:"Salt & Strength Fitness", category:"kids", glyph:"kids",
+    blurb:"Community workout, shaved ice, bounce house, face painting and games.", price:"Free",
+    location:{ bearing:12, dist:6, latLng:{ lat:30.4980, lng:-87.2050 } }, // ESTIMATED — 2501 E Olive Rd; UNVERIFIED — near/past rim
+    occurrences:[ { date:"2026-06-13", start:9, end:12 } ] }, // one-off
+
+  { id:"ev-summer-splash", name:"Summer Splash", venue:"Barrancas Ballfields (NAS Pensacola)", category:"kids", glyph:"kids",
+    blurb:"Giant water slides, water-gun zone and toddler play area. Free for DoD cardholders.", price:"Free (DoD)",
+    location:{ bearing:230, dist:7.5, latLng:{ lat:30.3550, lng:-87.3000 } }, // ESTIMATED — 80 Slemmer Ave, NAS; UNVERIFIED — past rim
+    occurrences:[ { date:"2026-06-13", start:11, end:14 } ] }, // one-off
+
+  { id:"ev-west-coast-swing", name:"Saturday Night West Coast Swing", venue:"Ragon Hall", category:"classes", glyph:"classes",
+    blurb:"Workshops + social dance with Pensacola Swing Dance Society; free beginner track.", price:"$15–$35",
+    location:{ bearing:40, dist:3.2, latLng:{ lat:30.4450, lng:-87.1800 } }, // ESTIMATED — 2600 Stratford Rd; UNVERIFIED
+    occurrences:[ { date:"2026-06-13", start:18, end:22 } ] }, // MONTHLY — test-dated; really runs to 23.5 (clipped at 22)
+
+  { id:"ev-improvable-cause", name:"Improvable Cause: Live Improv", venue:"Pensacola Little Theatre", category:"comedy", glyph:"comedy",
+    blurb:"Monthly unscripted comedy built entirely from audience suggestions.", price:"$10",
+    location:{ bearing:165, dist:0.4, latLng:{ lat:30.4085, lng:-87.2140 } }, // ESTIMATED — 108 E Main St; UNVERIFIED
+    occurrences:[ { date:"2026-06-13", start:22, end:23.5 } ] }, // MONTHLY — test-dated; at the 22:00 throttle ceiling
+
+  // ───────── MULTI-DAY (dated; Sunday leg is past the current window edge) ─────────
+
+  { id:"ev-summer-cider-fest", name:"Summer Cider Fest", venue:"Coastal County Brewing Company", category:"nightlife", glyph:"nightlife",
+    blurb:"Three-day tap takeover: build-your-own cider flights, a can release and live local music.", price:"Varies",
+    location:{ bearing:15, dist:6.1, latLng:{ lat:30.4980, lng:-87.2000 } }, // ESTIMATED — 3041 E Olive Rd; UNVERIFIED — near/past rim
+    occurrences:[
+      { date:"2026-06-12", start:14, end:22 },
+      { date:"2026-06-13", start:14, end:22 },
+      { date:"2026-06-14", start:14, end:22 }, // one day past the current 7-day window edge — won't show until window rolls
+    ] },
 ];
 
 // Normalise an event into the shared entity interface so Field/DYNAMO helpers work
