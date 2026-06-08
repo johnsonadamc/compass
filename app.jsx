@@ -414,13 +414,13 @@ function App() {
         throttleLabel={currentMode.throttleLabel} />
 
       {cardEntity && mode === "food" && (
-        <window.TruckCard truck={cardEntity} t={t} day={day} watched={watched}
+        <window.TruckCard truck={cardEntity} t={t} day={day} watched={watched} userPos={userPos}
           onClose={() => { setCardId(null); setSelectedId(null); }}
           onWatch={toggleWatch} onGuide={startNav} />
       )}
 
       {cardEntity && mode === "events" && window.EventCard && (
-        <window.EventCard entity={cardEntity} t={t} day={day} watched={watched}
+        <window.EventCard entity={cardEntity} t={t} day={day} watched={watched} userPos={userPos}
           onClose={() => { setCardId(null); setSelectedId(null); }}
           onWatch={toggleWatch} onGuide={startNav} />
       )}

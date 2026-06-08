@@ -1,13 +1,15 @@
 // eventcard.jsx — Event detail card for OFFLINE//EVENTS mode.
 // Exposes window.EventCard. Reuses the card shell and all card CSS.
-function EventCard({ entity, t, day, watched, onClose, onWatch, onGuide }) {
+function EventCard({ entity, t, day, watched, userPos, onClose, onWatch, onGuide }) {
   if (!entity || !entity._event) return null;
   const D = window.DYNAMO;
   const DGlyph = window.DGlyph;
   const days = window.DAYS;
   const ev = entity._event;
 
-  const plan = D.planFor(entity, day);
+  // Geo-aware: real distance/bearing from the user's position when YOU is active;
+  // planFor falls back to the stored anchor estimate when userPos is null.
+  const plan = D.planFor(entity, day, userPos?.lat, userPos?.lng);
   // Live status: shared engine rule — now-relative claim ONLY on real today @ the
   // real clock; null on any other day → neutral schedule info, no vermillion. Same
   // statusAt tokens as the food card (one threshold set — food/events parity).
@@ -23,8 +25,9 @@ function EventCard({ entity, t, day, watched, onClose, onWatch, onGuide }) {
     : (plan ? `${days[day].weekday} · ${D.fmtHM(plan.open)}–${D.fmtHM(plan.close)}`
             : `NOT SCHEDULED ${days[day].weekday}`);
 
-  // All upcoming occurrences (uses standard upcomingWindows since entity is normalised)
-  const upcoming = D.upcomingWindows(entity, day, t, 4);
+  // All upcoming occurrences (uses standard upcomingWindows since entity is normalised).
+  // Trailing lat/lng matches drawer.jsx so upcoming distances are geo-aware too.
+  const upcoming = D.upcomingWindows(entity, day, t, 4, userPos?.lat, userPos?.lng);
 
   const { sheetRef, dragStyle, gripHandlers } = window.useSwipeDismiss(onClose);
 

@@ -1,10 +1,12 @@
 // card.jsx — DYNAMO truck detail card (day-aware). Exposes window.TruckCard.
-function TruckCard({ truck, t, day, watched, onClose, onWatch, onGuide }) {
+function TruckCard({ truck, t, day, watched, userPos, onClose, onWatch, onGuide }) {
   if (!truck) return null;
   const D = window.DYNAMO;
   const DGlyph = window.DGlyph;
   const days = window.DAYS;
-  const plan = D.planFor(truck, day);
+  // Geo-aware: real distance/bearing from the user's position when YOU is active;
+  // planFor falls back to the stored anchor estimate when userPos is null.
+  const plan = D.planFor(truck, day, userPos?.lat, userPos?.lng);
   // Live status: now-relative claim ONLY on real today @ the real clock (shared
   // engine rule, mirrors the watchlist). null on any other day → neutral schedule
   // info, no vermillion. Emblem lit/ghost on the dial stays scrubbed (field.jsx).
