@@ -36,12 +36,9 @@ function App() {
   const [spinning, setSpinning] = useState(false);
   // null = permission denied / unavailable → dial falls back to city anchor as user position
   const [userPos, setUserPos] = useState(null);
-  // TEMP DIAGNOSTIC (remove once geolocation is confirmed on iOS Safari): reports EVERY
-  // geolocation state on-screen near the YOU hub — "locating…" the instant the call is
-  // reached, "got fix" on success, "geo err N: …" on failure/timeout — so silence is
-  // impossible (iOS Safari has no on-device console). If it sticks on "locating…" past
-  // the 10s timeout with no error, the callback genuinely never returned.
-  const [geoStatus, setGeoStatus] = useState(null);
+  // true once a location request is denied/unavailable — drives a quiet on-screen note
+  // (a fully silent empty error handler was the original iOS bug that hid failures).
+  const [geoDenied, setGeoDenied] = useState(false);
 
   const [vp, setVp] = useState({ w: window.innerWidth, h: window.innerHeight });
   const [topH, setTopH] = useState(185);
@@ -293,26 +290,21 @@ function App() {
   const activateLive = () => {
     if (userPos) return;
     if (navigator.geolocation) {
-      setGeoStatus("locating…"); // TEMP: proves activateLive ran + getCurrentPosition was reached
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          console.log("[OFFLINE geo] fix:", pos.coords.latitude, pos.coords.longitude);
-          setGeoStatus("got fix"); // TEMP: success callback returned; label flips to YOU below
-          setTimeout(() => setGeoStatus(null), 2500); // briefly, then clear
+          setGeoDenied(false);
           setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         },
-        (err) => {
-          // denied/unavailable/timeout (code 3) → userPos stays null, anchor label stays, manual drag still works.
-          // Surface the reason on-screen (iOS Safari has no console) + console.warn for desktop.
-          console.warn("[OFFLINE geo] error", err.code, err.message);
-          setGeoStatus(`geo err ${err.code}: ${err.message}`);
-        },
+        // denied/unavailable/timeout (code 3) → userPos stays null so the silent anchor
+        // fallback + hubLabel hold and manual drag still works; a quiet on-screen note
+        // (not a fully silent failure) invites a retry tap.
+        () => setGeoDenied(true),
         // enableHighAccuracy:false — a 5-mile radar doesn't need GPS-grade precision; wifi/cell
         // is faster, returns indoors, and hangs less. Finite timeout still routes a hang to error.
         { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
       );
     } else {
-      setGeoStatus("geo unavailable: no navigator.geolocation");
+      setGeoDenied(true);
     }
   };
 
@@ -398,7 +390,7 @@ function App() {
         speed={tweaks.speed} now={now} trucks={entities}
         heading={heading} onHeading={setHeading} range={range} onRange={setRange}
         navId={navId} navProgress={navProgress} userPos={userPos} onFlick={onFlick}
-        spinning={spinning} compassLive={compassLive} onTapHub={activateLive} geoStatus={geoStatus} />
+        spinning={spinning} compassLive={compassLive} onTapHub={activateLive} geoDenied={geoDenied} />
 
       {navTruck && (
         <div className={"nav-banner" + (arrived ? " arrived" : "")}>

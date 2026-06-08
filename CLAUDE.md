@@ -124,7 +124,11 @@ Placement is **real geography**, not hardcoded relative coordinates.
   is independent of `userPos`, so live compass still works on the anchor fallback.
 - **Fallback when denied/unavailable:** silently center on the city anchor; the
   app never blanks. The YOU hub shows **"YOU"** when a real position is active,
-  else the anchor's `hubLabel` (e.g. "GARDEN & PALAFOX") + a small "TAP TO LOCATE".
+  else the anchor's `hubLabel` (e.g. "GARDEN & PALAFOX") + a small "TAP TO LOCATE"
+  (which becomes "LOCATION OFF · TAP TO RETRY" after a denial — a quiet note, never
+  a fully silent failure; `userPos` stays null so the anchor fallback holds). The
+  geolocation error callback must always exist — an empty/silent one was the
+  original iOS bug that hid failures.
 - **Rim radius** is a single constant `DEFAULT_RIM_MI` (currently **5 miles**) —
   the default zoom range; pinch-zoom bounds scale proportionally. No auto-scaling.
   **KNOWN ISSUE (real data exposed it):** a real regional feed spans far wider than

@@ -60,7 +60,7 @@ function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, o
 
 function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, onTapBody, onTapField,
                  speed, now, trucks, heading, onHeading, range, onRange, navId, navProgress, userPos,
-                 onFlick, spinning, compassLive, onTapHub, geoStatus }) {
+                 onFlick, spinning, compassLive, onTapHub, geoDenied }) {
   const D = window.DYNAMO;
   const list = trucks || window.TRUCKS;
   const ringFracs = [0.25, 0.5, 1];
@@ -212,15 +212,11 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
         {userPos
           ? <div className="hub-label">YOU</div>
           : <div className="hub-label hub-label-anchor">{window.CITIES[window.DEFAULT_CITY].hubLabel}</div>}
-        {/* TEMP DIAGNOSTIC: reports every geolocation state (locating… / got fix / geo err N)
-            so silence is impossible. Rendered regardless of userPos so "got fix" is visible
-            even as the label flips to YOU. Remove with the app.jsx geoStatus state once confirmed. */}
-        {geoStatus
-          ? <div className="hub-tap-invite hub-geo-diag">{geoStatus}</div>
-          : !userPos
-            ? <div className="hub-tap-invite">TAP TO LOCATE</div>
-            /* discoverability: live compass is now its own gesture on the chip */
-            : (!compassLive && <div className="hub-tap-invite">TAP ✣ FOR LIVE</div>)}
+        {!userPos
+          // denied/unavailable → quiet note (not a silent failure); a tap retries the request
+          ? <div className="hub-tap-invite">{geoDenied ? "LOCATION OFF · TAP TO RETRY" : "TAP TO LOCATE"}</div>
+          // located: live compass is its own gesture on the chip — point the way
+          : (!compassLive && <div className="hub-tap-invite">TAP ✣ FOR LIVE</div>)}
       </button>
 
       {placed.map((pl) => {
