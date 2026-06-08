@@ -211,7 +211,8 @@ function App() {
     const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n;
   });
 
-  // navigation — only available in food mode (events have fixed locations but no guide yet)
+  // navigation — simulated homing-toward-center, shared by food trucks and events
+  // (entity-agnostic: operates on the selected entity id against the current-mode list)
   const startNav = (id) => { setNavId(id); setNavProgress(0); setArrived(false); vibeRef.current = -1; navWalkRef.current = true; setCardId(null); setSelectedId(id); };
   const stopNav = () => { navWalkRef.current = false; setNavId(null); setNavProgress(0); setArrived(false); };
 
@@ -300,7 +301,7 @@ function App() {
 
   // card lookup — truck in food mode, event entity in events mode
   const cardEntity = entities.find(x => x.id === cardId) || null;
-  const navTruck = mode === "food" && navId ? window.TRUCKS.find(x => x.id === navId) : null;
+  const navTruck = navId ? entities.find(x => x.id === navId) : null;
   const navPlan = navTruck ? D.planFor(navTruck, day, userPos?.lat, userPos?.lng) : null;
   const navDist = navPlan ? navPlan.dist * (1 - navProgress * 0.93) : 0;
   const openCount = entities.filter(e => D.powerAt(e, t, day) > 0.5).length;
@@ -399,7 +400,7 @@ function App() {
       {cardEntity && mode === "events" && window.EventCard && (
         <window.EventCard entity={cardEntity} t={t} day={day} watched={watched}
           onClose={() => { setCardId(null); setSelectedId(null); }}
-          onWatch={toggleWatch} />
+          onWatch={toggleWatch} onGuide={startNav} />
       )}
 
       <window.AlertsLedger open={ledgerOpen} watched={watched} day={day} t={t}

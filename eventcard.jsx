@@ -1,6 +1,6 @@
 // eventcard.jsx — Event detail card for OFFLINE//EVENTS mode.
 // Exposes window.EventCard. Reuses the card shell and all card CSS.
-function EventCard({ entity, t, day, watched, onClose, onWatch }) {
+function EventCard({ entity, t, day, watched, onClose, onWatch, onGuide }) {
   if (!entity || !entity._event) return null;
   const D = window.DYNAMO;
   const DGlyph = window.DGlyph;
@@ -127,9 +127,14 @@ function EventCard({ entity, t, day, watched, onClose, onWatch }) {
           </a>
         )}
 
-        <button className={"card-watch" + (isWatched ? " on" : "")} onClick={() => onWatch(entity.id)}>
-          {isWatched ? "★  WATCHING" : "☆  WATCH THIS EVENT"}
-        </button>
+        <div className="card-actions">
+          {plan && onGuide && (
+            <button className="card-guide" onClick={() => onGuide(entity.id)}>✣&nbsp;&nbsp;GUIDE ME HERE</button>
+          )}
+          <button className={"card-watch" + (isWatched ? " on" : "")} onClick={() => onWatch(entity.id)}>
+            {isWatched ? "★  WATCHING" : "☆  WATCH THIS EVENT"}
+          </button>
+        </div>
         </div>{/* end card-body */}
       </div>
     </div>
