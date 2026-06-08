@@ -8,7 +8,7 @@ function TruckCard({ truck, t, day, watched, onClose, onWatch, onGuide }) {
   const status = D.statusAt(truck, t, day);
   const open = plan && D.powerAt(truck, t, day) > 0.5;
   const statusText = {
-    open:"POWERED · OPEN NOW", opening:"JUST OPENED", closing:"CLOSING SOON",
+    open:"OPEN NOW", opening:"JUST OPENED", closing:"CLOSING SOON",
     soon: plan ? `OPENS ${D.fmtTime(plan.open).label}` : "", closed:"CLOSED FOR THE DAY",
     off:"NOT OUT THIS DAY",
   }[status];
