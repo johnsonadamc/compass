@@ -36,6 +36,10 @@ function App() {
   const [spinning, setSpinning] = useState(false);
   // null = permission denied / unavailable → dial falls back to city anchor as user position
   const [userPos, setUserPos] = useState(null);
+  // TEMP DIAGNOSTIC (remove once geolocation is confirmed on iOS Safari): captures the
+  // getCurrentPosition error code+message and surfaces it on-screen near the YOU hub,
+  // because iOS Safari has no on-device console. Cleared on a successful fix.
+  const [geoError, setGeoError] = useState(null);
 
   const [vp, setVp] = useState({ w: window.innerWidth, h: window.innerHeight });
   const [topH, setTopH] = useState(185);
@@ -285,9 +289,21 @@ function App() {
     if (userPos) return;
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => {}, // denied → userPos stays null, anchor label stays, manual drag still works
+        (pos) => {
+          console.log("[OFFLINE geo] fix:", pos.coords.latitude, pos.coords.longitude);
+          setGeoError(null); // clear any prior diagnostic on a real fix
+          setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        (err) => {
+          // denied/unavailable/timeout → userPos stays null, anchor label stays, manual drag still works.
+          // Surface the reason on-screen (iOS Safari has no console) + console.warn for desktop.
+          console.warn("[OFFLINE geo] error", err.code, err.message);
+          setGeoError(`geo err ${err.code}: ${err.message}`);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
       );
+    } else {
+      setGeoError("geo unavailable: no navigator.geolocation");
     }
     setupCompass(); // called without await — synchronous preamble runs within the gesture stack
   };
@@ -374,7 +390,7 @@ function App() {
         speed={tweaks.speed} now={now} trucks={entities}
         heading={heading} onHeading={setHeading} range={range} onRange={setRange}
         navId={navId} navProgress={navProgress} userPos={userPos} onFlick={onFlick}
-        spinning={spinning} compassLive={compassLive} onTapHub={activateLive} />
+        spinning={spinning} compassLive={compassLive} onTapHub={activateLive} geoError={geoError} />
 
       {navTruck && (
         <div className={"nav-banner" + (arrived ? " arrived" : "")}>
