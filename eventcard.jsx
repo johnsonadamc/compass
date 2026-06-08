@@ -132,7 +132,7 @@ function EventCard({ entity, t, day, watched, onClose, onWatch, onGuide }) {
             <button className="card-guide" onClick={() => onGuide(entity.id)}>✣&nbsp;&nbsp;GUIDE ME HERE</button>
           )}
           <button className={"card-watch" + (isWatched ? " on" : "")} onClick={() => onWatch(entity.id)}>
-            {isWatched ? "★  WATCHING" : "☆  WATCH THIS EVENT"}
+            {isWatched ? "★  WATCHING" : "☆  WATCH"}
           </button>
         </div>
         </div>{/* end card-body */}
