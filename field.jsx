@@ -217,7 +217,10 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
             even as the label flips to YOU. Remove with the app.jsx geoStatus state once confirmed. */}
         {geoStatus
           ? <div className="hub-tap-invite hub-geo-diag">{geoStatus}</div>
-          : (!userPos && <div className="hub-tap-invite">TAP TO LOCATE</div>)}
+          : !userPos
+            ? <div className="hub-tap-invite">TAP TO LOCATE</div>
+            /* discoverability: live compass is now its own gesture on the chip */
+            : (!compassLive && <div className="hub-tap-invite">TAP ✣ FOR LIVE</div>)}
       </button>
 
       {placed.map((pl) => {

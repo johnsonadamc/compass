@@ -114,7 +114,14 @@ Placement is **real geography**, not hardcoded relative coordinates.
 - **User location is requested on a deliberate tap of the YOU hub** (NOT on page
   load — auto-request was unreliable on mobile). The hub is a `<button>`; its
   pointer/touch-down handlers `stopPropagation()` so tapping it doesn't start a
-  dial drag. The tap requests BOTH geolocation and device-orientation (compass).
+  dial drag. **The hub tap requests GEOLOCATION ONLY** — live compass is a
+  SEPARATE gesture on the compass chip (see "Live compass"). They were once fired
+  together from one tap, but on iOS the device-orientation permission modal
+  orphaned the still-pending geolocation prompt, so iOS silently dropped the
+  location request (it stuck forever, never calling back). Splitting them so each
+  permission owns its own clean user gesture is the fix — **do not recombine them
+  into one tap.** Denied/unavailable location does NOT block the compass: the chip
+  is independent of `userPos`, so live compass still works on the anchor fallback.
 - **Fallback when denied/unavailable:** silently center on the city anchor; the
   app never blanks. The YOU hub shows **"YOU"** when a real position is active,
   else the anchor's `hubLabel` (e.g. "GARDEN & PALAFOX") + a small "TAP TO LOCATE".
@@ -130,12 +137,15 @@ Placement is **real geography**, not hardcoded relative coordinates.
 
 ## Live compass (SHIPPED)
 
-- Tapping the YOU hub (or the compass chip) activates live mode: the dial rotates
-  to the device heading. iOS uses `webkitCompassHeading` (true north). Android
-  uses `deviceorientationabsolute` when available, falling back to relative
-  `deviceorientation` `alpha`.
+- **The compass chip activates live mode** (the YOU hub no longer does — it requests
+  location only; see "Geolocation & placement" for why the two prompts were split).
+  The dial rotates to the device heading. iOS uses `webkitCompassHeading` (true
+  north). Android uses `deviceorientationabsolute` when available, falling back to
+  relative `deviceorientation` `alpha`. Once located, a small **"TAP ✣ FOR LIVE"**
+  hint by the hub points to the chip for discoverability.
 - iOS requires `DeviceOrientationEvent.requestPermission()` called synchronously
-  within the tap handler — preserved.
+  within the tap handler — preserved: the chip's own tap is that gesture (the chip
+  owns compass activation, uncontended by the geolocation prompt).
 - **Listener teardown:** orientation handler refs stored in a ref and removed
   (with the matching capture flag) on toggle-off, so switching back to "manual"
   truly stops sensor tracking. (Earlier bug: manual never stopped because the

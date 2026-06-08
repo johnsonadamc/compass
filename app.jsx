@@ -285,8 +285,11 @@ function App() {
     setupCompass();
   };
 
-  // Hub tap: request both geolocation AND compass from a single user gesture.
-  // If location is already active, tap does nothing (chip handles toggling thereafter).
+  // Hub tap: request geolocation ONLY, so its permission prompt owns the user gesture
+  // uncontended (firing DeviceOrientation.requestPermission in the same tap orphaned the
+  // location prompt on iOS — the two modals collided). Live compass is a SEPARATE gesture
+  // owned by the compass chip (enableCompass → setupCompass). Location stays a deliberate
+  // tap (not on page load). If location is denied/unavailable, the chip still enables compass.
   const activateLive = () => {
     if (userPos) return;
     if (navigator.geolocation) {
@@ -304,12 +307,13 @@ function App() {
           console.warn("[OFFLINE geo] error", err.code, err.message);
           setGeoStatus(`geo err ${err.code}: ${err.message}`);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+        // enableHighAccuracy:false — a 5-mile radar doesn't need GPS-grade precision; wifi/cell
+        // is faster, returns indoors, and hangs less. Finite timeout still routes a hang to error.
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
       );
     } else {
       setGeoStatus("geo unavailable: no navigator.geolocation");
     }
-    setupCompass(); // called without await — synchronous preamble runs within the gesture stack
   };
 
   const { w, h } = vp;
