@@ -318,6 +318,10 @@
     position: absolute; transform: translate(-50%,-50%); white-space: nowrap; z-index: 40;
     font-family: var(--cond); font-weight: 600; font-size: 9.5px; letter-spacing: 0.12em;
     color: var(--ink); pointer-events: none;
+    /* Event names are stored natural-case in data; uppercase the dial label to match
+       the truck labels (whose data happens to be uppercase, so this is a no-op for them).
+       Shared rule — unifies trucks + events without touching data. */
+    text-transform: uppercase;
   }
 
   /* ---------- CONSOLE ---------- */
