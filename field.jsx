@@ -19,7 +19,9 @@ function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, o
   const cls = "emblem shape-" + shape
     + (energized ? " energized" : on ? " on" : " off")
     + (dim ? " dim" : "")
-    + (ahead && !dim ? " ahead" : "")
+    // `ahead` is already facing-AND-live-now (real clock); gate only on lens `matched`,
+    // NOT scrubbed `!dim`, so the pulse tracks the real clock independent of the scrub.
+    + (ahead && matched ? " ahead" : "")
     + (homing ? " homing" : "");
 
   return (
@@ -134,7 +136,11 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
     const raw = rot(Math.cos(rad)*rr, Math.sin(rad)*rr);
     const size = D.lerp(31, 41, D.clamp(1 - plan.dist/D.DEFAULT_RIM_MI, 0, 1));
     return { truck, x: raw.x, y: raw.y, r: rr, size, plan, dist,
-      power: D.powerAt(truck, t, day), match: matchOf(truck) };
+      power: D.powerAt(truck, t, day), match: matchOf(truck),
+      // live-now pulse predicate: real clock on the real day only (mirrors the cards
+      // & watchlist). Kept separate from scrubbed `power` so the pulse never follows
+      // the scrub — lit/ghost stays on `power`, the ping rides `liveNow`.
+      liveNow: day === 0 && D.powerAt(truck, D.realNowHour, 0) > 0.5 };
   }).filter(Boolean);
   for (let it = 0; it < 7; it++) {
     for (let i = 0; i < placed.length; i++) for (let j = i+1; j < placed.length; j++) {
@@ -220,7 +226,7 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
           power={pl.power} match={pl.match} shape={shape}
           selected={selectedId===pl.truck.id} watched={watched.has(pl.truck.id)}
           onTap={onTapBody} speed={speed} now={now}
-          ahead={ahead && pl.power>0.5} homing={isNav} approach={isNav?navProgress:0} />;
+          ahead={ahead && pl.liveNow} homing={isNav} approach={isNav?navProgress:0} />;
       })}
 
       {placed.map((pl) => {
