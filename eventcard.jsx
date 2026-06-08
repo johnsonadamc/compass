@@ -8,18 +8,20 @@ function EventCard({ entity, t, day, watched, onClose, onWatch, onGuide }) {
   const ev = entity._event;
 
   const plan = D.planFor(entity, day);
-  const power = plan ? D.powerAt(entity, t, day) : 0;
-  const on = power > 0.5;
+  // Live status: shared engine rule — now-relative claim ONLY on real today @ the
+  // real clock; null on any other day → neutral schedule info, no vermillion. Same
+  // statusAt tokens as the food card (one threshold set — food/events parity).
+  const liveStatus = D.liveStatusAt(entity, day);
+  const on = day === 0 && plan && D.powerAt(entity, D.realNowHour, 0) > 0.5;
   const isWatched = watched.has(entity.id);
 
-  // Human-readable status for this event occurrence
-  const statusText = (() => {
-    if (!plan) return "NOT ON THIS DAY";
-    if (power <= 0.03) return t < plan.open ? `STARTS ${D.fmtTime(plan.open).label}` : "FINISHED";
-    if (t < plan.open + 0.5) return "JUST STARTED";
-    if (t > plan.close - 0.5) return "ENDING SOON";
-    return "HAPPENING NOW";
-  })();
+  const statusText = liveStatus ? {
+    open:"HAPPENING NOW", opening:"JUST STARTED", closing:"ENDING SOON",
+    soon: plan ? `STARTS ${D.fmtTime(plan.open).label}` : "", closed:"FINISHED",
+    off:"NOT ON THIS DAY",
+  }[liveStatus]
+    : (plan ? `${days[day].weekday} · ${D.fmtHM(plan.open)}–${D.fmtHM(plan.close)}`
+            : `NOT SCHEDULED ${days[day].weekday}`);
 
   // All upcoming occurrences (uses standard upcomingWindows since entity is normalised)
   const upcoming = D.upcomingWindows(entity, day, t, 4);
@@ -45,7 +47,7 @@ function EventCard({ entity, t, day, watched, onClose, onWatch, onGuide }) {
             onClick={() => onWatch(entity.id)} aria-label="watch">★</button>
         </div>
 
-        <div className={"card-status" + (on ? " on" : (!plan ? " off" : ""))}>
+        <div className={"card-status" + (on ? " on" : "")}>
           <span className="card-status-dot" />{statusText}
         </div>
 

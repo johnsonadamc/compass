@@ -333,6 +333,15 @@ function statusAt(truck, t, day) {
   if (t > p.close - 0.75 && t < p.close) return "closing";
   return "open";
 }
+// Live status for a card's status line — now-relative claims ONLY on the real
+// present day (day 0), computed against the real clock (realNowHour), NOT the
+// scrubbed throttle. Mirrors the watchlist HAPPENING NOW rule. Returns a neutral
+// statusAt token when viewing real today, or null on any other day (the caller
+// then shows neutral viewed-day schedule info instead of a live claim).
+function liveStatusAt(entity, day) {
+  if (day !== 0) return null;
+  return statusAt(entity, realNowHour, 0);
+}
 // bearing+dist -> field offset for the day (null if off)
 // Optional userLat/userLng: threaded to planFor for geo-accurate bearing/dist.
 function bodyPos(truck, fieldR, day, userLat, userLng) {
@@ -592,7 +601,7 @@ function eventToEntity(ev) {
 window.DYNAMO = {
   DAY_START, DAY_END, DEFAULT_RIM_MI,
   fmtTime, fmtHourShort, fmtHM, clamp, lerp, smoothstep,
-  compassDir, planFor, powerAt, statusAt, bodyPos, walkMin, upcomingWindows, windowTimes,
+  compassDir, planFor, powerAt, statusAt, liveStatusAt, bodyPos, walkMin, upcomingWindows, windowTimes,
   eventToEntity, haversineMi, geoBearing, geoDestination,
   todayHour, realNowHour,
 };

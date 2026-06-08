@@ -304,8 +304,14 @@ function App() {
   const navTruck = navId ? entities.find(x => x.id === navId) : null;
   const navPlan = navTruck ? D.planFor(navTruck, day, userPos?.lat, userPos?.lng) : null;
   const navDist = navPlan ? navPlan.dist * (1 - navProgress * 0.93) : 0;
+  // Header count stays SCRUBBED — it's the exploratory dial readout (how many are
+  // lit at the hour you're viewing), not a live claim. So the word "NOW" only shows
+  // when you're actually viewing real today at the real clock; otherwise label it
+  // with the viewed hour ("OPEN 6P") so it never makes a false live claim.
   const openCount = entities.filter(e => D.powerAt(e, t, day) > 0.5).length;
-  const openLabel = mode === "food" ? "OPEN\nNOW" : "ON\nNOW";
+  const viewingRealNow = day === 0 && Math.abs(t - D.realNowHour) < 0.25;
+  const openWord = mode === "food" ? "OPEN" : "ON";
+  const openLabel = viewingRealNow ? `${openWord}\nNOW` : `${openWord}\n${D.fmtHourShort(Math.round(t))}`;
 
   // live badge: watched items open RIGHT NOW (real unclamped Central time, today = day 0)
   const allWatchedEntities = useMemo(() => {

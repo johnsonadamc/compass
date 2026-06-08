@@ -5,13 +5,18 @@ function TruckCard({ truck, t, day, watched, onClose, onWatch, onGuide }) {
   const DGlyph = window.DGlyph;
   const days = window.DAYS;
   const plan = D.planFor(truck, day);
-  const status = D.statusAt(truck, t, day);
-  const open = plan && D.powerAt(truck, t, day) > 0.5;
-  const statusText = {
+  // Live status: now-relative claim ONLY on real today @ the real clock (shared
+  // engine rule, mirrors the watchlist). null on any other day → neutral schedule
+  // info, no vermillion. Emblem lit/ghost on the dial stays scrubbed (field.jsx).
+  const liveStatus = D.liveStatusAt(truck, day);
+  const liveOn = day === 0 && plan && D.powerAt(truck, D.realNowHour, 0) > 0.5;
+  const statusText = liveStatus ? {
     open:"OPEN NOW", opening:"JUST OPENED", closing:"CLOSING SOON",
     soon: plan ? `OPENS ${D.fmtTime(plan.open).label}` : "", closed:"CLOSED FOR THE DAY",
     off:"NOT OUT THIS DAY",
-  }[status];
+  }[liveStatus]
+    : (plan ? `${days[day].weekday} · ${D.fmtHM(plan.open)}–${D.fmtHM(plan.close)}`
+            : `NOT SCHEDULED ${days[day].weekday}`);
   const isWatched = watched.has(truck.id);
   const dirOf = (b) => D.compassDir(b);
 
@@ -24,7 +29,7 @@ function TruckCard({ truck, t, day, watched, onClose, onWatch, onGuide }) {
         <div className="card-grip" {...gripHandlers} aria-hidden="true"><span className="grip-pill" /></div>
         <div className="card-body">
         <div className="card-head">
-          <div className={"card-badge" + (open ? " on" : "")}>
+          <div className={"card-badge" + (liveOn ? " on" : "")}>
             <DGlyph name={truck.glyph} size={30} />
           </div>
           <div className="card-titles">
@@ -34,7 +39,7 @@ function TruckCard({ truck, t, day, watched, onClose, onWatch, onGuide }) {
           <button className={"card-fav" + (isWatched ? " on" : "")} onClick={() => onWatch(truck.id)} aria-label="watch">★</button>
         </div>
 
-        <div className={"card-status" + (open ? " on" : (status==="off" ? " off" : ""))}>
+        <div className={"card-status" + (liveOn ? " on" : "")}>
           <span className="card-status-dot" />{statusText}
         </div>
 
