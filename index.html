@@ -427,6 +427,10 @@
   .card-badge.on { background: var(--verm); color: var(--paper); }
   .card-titles { flex: 1; min-width: 0; }
   .card-name { font-family: var(--deco); font-size: 24px; line-height: 0.92; letter-spacing: -0.01em; }
+  /* Event names are stored natural-case in data; render them all-caps to match the
+     truck card titles (whose data happens to be uppercase). Event-only selector so the
+     shared .card-name rule — and FOOD-mode rendering — stays untouched. */
+  .ev-name { text-transform: uppercase; }
   .card-cuisine { font-family: var(--cond); font-weight: 500; font-size: 11px; letter-spacing: 0.16em; color: var(--ink-soft); margin-top: 7px; }
   .card-fav { background: none; border: none; cursor: pointer; font-size: 24px; color: var(--ink-faint); flex-shrink: 0; line-height: 1; }
   .card-fav.on { color: var(--blue); }

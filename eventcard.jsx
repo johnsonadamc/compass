@@ -38,7 +38,7 @@ function EventCard({ entity, t, day, watched, onClose, onWatch }) {
             <DGlyph name={entity.glyph} size={30} />
           </div>
           <div className="card-titles">
-            <div className="card-name">{entity.name}</div>
+            <div className="card-name ev-name">{entity.name}</div>
             <div className="card-cuisine">{ev.venue} · {ev.price}</div>
           </div>
           <button className={"card-fav" + (isWatched ? " on" : "")}
