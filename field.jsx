@@ -60,7 +60,7 @@ function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, o
 
 function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, onTapBody, onTapField,
                  speed, now, trucks, heading, onHeading, range, onRange, navId, navProgress, userPos,
-                 onFlick, spinning, compassLive, onTapHub, geoError }) {
+                 onFlick, spinning, compassLive, onTapHub, geoStatus }) {
   const D = window.DYNAMO;
   const list = trucks || window.TRUCKS;
   const ringFracs = [0.25, 0.5, 1];
@@ -211,15 +211,13 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
         </svg>
         {userPos
           ? <div className="hub-label">YOU</div>
-          : <>
-              <div className="hub-label hub-label-anchor">{window.CITIES[window.DEFAULT_CITY].hubLabel}</div>
-              {/* TEMP DIAGNOSTIC: shows the geolocation failure reason on-screen (iOS Safari
-                  has no console). Remove with the app.jsx geoError state once confirmed. */}
-              {geoError
-                ? <div className="hub-tap-invite hub-geo-diag">{geoError}</div>
-                : <div className="hub-tap-invite">TAP TO LOCATE</div>}
-            </>
-        }
+          : <div className="hub-label hub-label-anchor">{window.CITIES[window.DEFAULT_CITY].hubLabel}</div>}
+        {/* TEMP DIAGNOSTIC: reports every geolocation state (locating… / got fix / geo err N)
+            so silence is impossible. Rendered regardless of userPos so "got fix" is visible
+            even as the label flips to YOU. Remove with the app.jsx geoStatus state once confirmed. */}
+        {geoStatus
+          ? <div className="hub-tap-invite hub-geo-diag">{geoStatus}</div>
+          : (!userPos && <div className="hub-tap-invite">TAP TO LOCATE</div>)}
       </button>
 
       {placed.map((pl) => {
