@@ -53,8 +53,12 @@ function TruckCard({ truck, t, day, watched, userPos, onClose, onWatch, onGuide 
               <div className="cell-v">{D.fmtHM(plan.open)}–{D.fmtHM(plan.close)}</div></div>
             <div className="card-cell"><div className="cell-k">DISTANCE</div>
               <div className="cell-v">{plan.dist.toFixed(1)} MI · {D.walkMin(plan.dist)} MIN</div></div>
-            <div className="card-cell card-wide"><div className="cell-k">SIGNATURE · {"$".repeat(truck.price)}</div>
-              <div className="cell-v">{truck.signature}</div></div>
+            {/* Signature cell only when there's a signature — otherwise no blank value /
+                orphaned "·". Price still shows in the cuisine line under the title. */}
+            {truck.signature && (
+              <div className="card-cell card-wide"><div className="cell-k">SIGNATURE · {"$".repeat(truck.price)}</div>
+                <div className="cell-v">{truck.signature}</div></div>
+            )}
           </div>
         ) : (
           <div className="card-grid"><div className="card-cell card-wide">
