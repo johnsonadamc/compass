@@ -327,7 +327,9 @@ function App() {
   const openCount = entities.filter(e => D.powerAt(e, t, day) > 0.5).length;
   const viewingRealNow = day === 0 && Math.abs(t - D.realNowHour) < 0.25;
   const openWord = mode === "food" ? "OPEN" : "ON";
-  const openLabel = viewingRealNow ? `${openWord}\nNOW` : `${openWord}\n${D.fmtHourShort(Math.round(t))}`;
+  // "NOW" is the live-status truth-claim (real today + real hour only); the scrubbed
+  // case drops the clock-time readout entirely — count-only, no false present-tense.
+  const openLabel = viewingRealNow ? `${openWord}\nNOW` : openWord;
 
   // live badge: watched items open RIGHT NOW (real unclamped Central time, today = day 0)
   const allWatchedEntities = useMemo(() => {
