@@ -140,122 +140,121 @@ function geoDestination(lat, lng, bearing, dist) {
   return { lat: φ2 * 180 / Math.PI, lng: λ2 * 180 / Math.PI };
 }
 
-/* TRUCKS — each has locations[] (named stops w/ bearing+dist+latLng) and a recurrence[]
-   weekly pattern (weekdays use getDay: 0=Sun…6=Sat). The seed trucks are genuinely
-   recurring, so they carry recurrence only (no dated occurrences); real one-off dates
-   arrive as occurrences[] later. latLng values are DERIVED FROM ESTIMATED GEOMETRY —
-   not verified; replace with real geocoded coordinates once confirmed. */
+/* TRUCKS — real Pensacola entities (replaced the seed set). Each has locations[]
+   (named stops w/ bearing+dist+latLng) and a recurrence[] weekly pattern (weekdays use
+   getDay: 0=Sun…6=Sat); FLOURISH PIZZA roams, so it carries dated occurrences[] instead
+   of recurrence (past dates self-expire — kept honestly). Businesses that run two
+   concurrent stalls are split into separate entities (GREEK'S, SUT-SHI), because planFor
+   returns one window per entity per day. latLng values are UNVERIFIED placeholders
+   (estimated geometry around the anchor) — each carries its real street address in a
+   trailing "// UNVERIFIED — <address>" comment so a later session can replace the
+   placeholder with a real geocode by find-and-replace. NOT verified addresses. */
 const TRUCKS = [
-  { id:"bao", name:"BAO & ARROW", cuisine:"Steamed buns", glyph:"asian", price:2,
-    cravings:["asian"], signature:"Five-spice pork bao", blurb:"Pillowy buns, folded to order.",
-    favorite:true,
-    locations:[
-      { name:"Palafox & Garden", bearing:350, dist:0.6,
-        latLng:{ lat:30.418252, lng:-87.218649 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
-      { name:"Seville Square",   bearing:300, dist:1.1,
-        latLng:{ lat:30.417659, lng:-87.232888 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
-    ],
-    recurrence:[
-      { weekdays:[1,2,3,5], start:11, end:15, loc:0 },  // Mon,Tue,Wed,Fri @ Palafox & Garden
-      { weekdays:[4],       start:11, end:15, loc:1 },  // Thu @ Seville Square
-      { weekdays:[6],       start:12, end:16, loc:1 },  // Sat @ Seville Square
-    ] },
-
-  { id:"green", name:"VERDIGRIS", cuisine:"Grain bowls", glyph:"global", price:2,
-    cravings:["global"], signature:"Charred broccolini bowl", blurb:"Market greens, big crunch.",
+  { id:"globetrotter", name:"GLOBETROTTER STREET FOOD", cuisine:"Global / Other", glyph:"global", price:2,
+    cravings:["global"], blurb:"Street food — dumplings & handhelds.",
     favorite:false,
     locations:[
-      { name:"Wright & Spring", bearing:312, dist:1.05,
-        latLng:{ lat:30.419868, lng:-87.229996 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
-      { name:"Bayfront Pkwy",   bearing:150, dist:1.4,
-        latLng:{ lat:30.392152, lng:-87.205155 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+      { name:"Odd Colony Brewing", bearing:0, dist:0.2,
+        latLng:{ lat:30.412595, lng:-87.216900 } }, // UNVERIFIED — 260 N Palafox, Pensacola FL 32502
     ],
     recurrence:[
-      { weekdays:[1,2,3,4], start:10.5, end:16, loc:0 },  // Mon–Thu @ Wright & Spring
-      { weekdays:[5],       start:10.5, end:16, loc:1 },  // Fri @ Bayfront Pkwy
-      { weekdays:[6],       start:11,   end:15, loc:1 },  // Sat @ Bayfront Pkwy
+      { weekdays:[1,2,3,4,5], start:17, end:21, loc:0 },  // Mon–Fri 5p–9p
+      { weekdays:[6],         start:11, end:21, loc:0 },  // Sat 11a–9p
     ] },
 
-  { id:"gyro", name:"AEGEAN WHEELS", cuisine:"Greek gyros", glyph:"tacos", price:2,
-    cravings:["tacos"], signature:"Lamb gyro, tzatziki", blurb:"Spit-roasted all day long.",
+  { id:"greeks-hillcrest", name:"GREEK'S — HILLCREST", cuisine:"Global / Other", glyph:"global", price:2,
+    cravings:["global"], blurb:"Greek / Mediterranean.",
     favorite:false,
     locations:[
-      { name:"12th & Cervantes", bearing:36, dist:1.3,
-        latLng:{ lat:30.424921, lng:-87.204075 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+      { name:"Hillcrest", bearing:70, dist:4.0,
+        latLng:{ lat:30.429485, lng:-87.153809 } }, // UNVERIFIED — 3960 Spanish Trl, Pensacola FL
     ],
     recurrence:[
-      { weekdays:[1,2,3,4,5,6], start:11, end:21, loc:0 },  // Mon–Sat @ 12th & Cervantes
-      { weekdays:[0],           start:12, end:20, loc:0 },  // Sun @ 12th & Cervantes
+      { weekdays:[1,2,3,4,5], start:10.5, end:19.5, loc:0 },  // Mon–Fri 10:30a–7:30p
+      { weekdays:[6],         start:11,   end:19,   loc:0 },  // Sat 11a–7p
     ] },
 
-  { id:"cluck", name:"CLUCK TRUCK", cuisine:"Nashville hot", glyph:"burgers", price:2,
-    cravings:["burgers"], signature:"Hot honey tenders", blurb:"Brined 24 hrs, dredged loud.",
+  { id:"greeks-pace", name:"GREEK'S — PACE", cuisine:"Global / Other", glyph:"global", price:2,
+    cravings:["global"], blurb:"Greek / Mediterranean.",
     favorite:false,
     locations:[
-      { name:"Gregory & 9th",     bearing:80,  dist:1.55,
-        latLng:{ lat:30.413593, lng:-87.191283 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
-      { name:"Palafox & Romana",  bearing:110, dist:0.8,
-        latLng:{ lat:30.405739, lng:-87.204285 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+      { name:"Pace on Woodbine", bearing:40, dist:13.5,
+        latLng:{ lat:30.559293, lng:-87.071051 } }, // UNVERIFIED — 5367 Woodbine Rd, Milton FL 32571
     ],
     recurrence:[
-      { weekdays:[2,3], start:11, end:22, loc:0 },  // Tue,Wed @ Gregory & 9th
-      { weekdays:[4,5], start:11, end:22, loc:1 },  // Thu,Fri @ Palafox & Romana
-      { weekdays:[6],   start:12, end:22, loc:1 },  // Sat @ Palafox & Romana
-      { weekdays:[0],   start:12, end:21, loc:0 },  // Sun @ Gregory & 9th
+      { weekdays:[2,3,4,5,6], start:11, end:19.5, loc:0 },  // Tue–Sat 11a–7:30p
     ] },
 
-  { id:"tacos", name:"BRASA", cuisine:"Al pastor tacos", glyph:"tacos", price:1,
-    cravings:["tacos"], signature:"Al pastor + piña", blurb:"Trompo carved off the flame.",
-    favorite:true,
-    locations:[
-      { name:"Palafox & Garden", bearing:120, dist:0.72,
-        latLng:{ lat:30.404489, lng:-87.206437 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
-      { name:"Seville Square",   bearing:200, dist:0.9,
-        latLng:{ lat:30.39746,  lng:-87.222065 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
-    ],
-    recurrence:[
-      { weekdays:[1,2,3,4], start:11, end:22, loc:0 },  // Mon–Thu @ Palafox & Garden
-      { weekdays:[5],       start:11, end:22, loc:1 },  // Fri @ Seville Square
-      { weekdays:[6],       start:12, end:22, loc:1 },  // Sat @ Seville Square
-      { weekdays:[0],       start:12, end:22, loc:0 },  // Sun @ Palafox & Garden
-    ] },
-
-  { id:"reel", name:"REEL CATCH", cuisine:"Gulf seafood", glyph:"seafood", price:3,
-    cravings:["seafood"], signature:"Royal red shrimp roll", blurb:"Off the boat this morning.",
+  { id:"brownbagger", name:"BROWN BAGGER", cuisine:"Burgers / BBQ", glyph:"burgers", price:2,
+    cravings:["burgers"], signature:"Wagyu burger", blurb:"Wagyu burgers, fries & tenders in brown bags.",
     favorite:false,
     locations:[
-      { name:"Bayfront Marina", bearing:176, dist:1.1,
-        latLng:{ lat:30.393818, lng:-87.215613 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+      { name:"Brown Bagger", bearing:30, dist:1.8,
+        latLng:{ lat:30.432260, lng:-87.201793 } }, // UNVERIFIED — 2435 N 12th Ave, Pensacola FL 32503
     ],
     recurrence:[
-      { weekdays:[2,3,4,5,6], start:17, end:22, loc:0 },  // Tue–Sat @ Bayfront Marina
-      { weekdays:[0],         start:17, end:21, loc:0 },  // Sun @ Bayfront Marina
+      { weekdays:[2,3,4,0,1], start:11, end:20, loc:0 },  // Tue,Wed,Thu,Sun,Mon 11a–8p
+      { weekdays:[5,6],       start:11, end:21, loc:0 },  // Fri,Sat 11a–9p
     ] },
 
-  { id:"sugar", name:"SUGAR THEORY", cuisine:"Soft serve", glyph:"sweets", price:1,
-    cravings:["sweets"], signature:"Brown-butter twist", blurb:"Churned in small batches.",
+  { id:"misu", name:"MI SU", cuisine:"Burgers / BBQ", glyph:"burgers", price:2,
+    cravings:["burgers"], blurb:"Hearty burgers & fried chicken sandwiches.",
     favorite:false,
     locations:[
-      { name:"Plaza Ferdinand", bearing:222, dist:0.55,
-        latLng:{ lat:30.403784, lng:-87.223076 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+      { name:"Nolita's Parlor & Eatery", bearing:5, dist:0.5,
+        latLng:{ lat:30.416909, lng:-87.216169 } }, // UNVERIFIED — 9 E Gregory St, Pensacola FL 32502
     ],
     recurrence:[
-      { weekdays:[1,2,3,4,5,6], start:12, end:22, loc:0 },  // Mon–Sat @ Plaza Ferdinand
-      { weekdays:[0],           start:12, end:20, loc:0 },  // Sun @ Plaza Ferdinand
+      { weekdays:[2,3,4], start:16, end:21, loc:0 },  // Tue–Thu 4p–9p
+      { weekdays:[5,6],   start:11, end:21, loc:0 },  // Fri,Sat 11a–9p (closed Sun/Mon)
     ] },
 
-  { id:"roast", name:"MERIDIAN ROASTERS", cuisine:"Coffee & buns", glyph:"coffee", price:1,
-    cravings:["coffee"], signature:"Cardamom cold brew", blurb:"First light, first pour.",
+  { id:"sutshi-lunch", name:"SUT-SHI (LUNCH)", cuisine:"Asian", glyph:"asian", price:2,
+    cravings:["asian"], blurb:"Sushi takeaway — lunch service.",
     favorite:false,
     locations:[
-      { name:"Intendencia & Jeff.", bearing:270, dist:0.9,
-        latLng:{ lat:30.409699, lng:-87.232004 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
-      { name:"Wright St Market",   bearing:300, dist:1.2,
-        latLng:{ lat:30.418383, lng:-87.234342 } }, // DERIVED FROM ESTIMATED GEOMETRY — not verified; replace with real geocoded coordinates
+      { name:"SUT-SHI", bearing:40, dist:13,
+        latLng:{ lat:30.553756, lng:-87.076460 } }, // UNVERIFIED — 5432 US-90, Pace FL 32571
     ],
     recurrence:[
-      { weekdays:[1,2,3,4,5], start:7, end:14, loc:0 },  // Mon–Fri @ Intendencia & Jeff.
-      { weekdays:[6],         start:8, end:14, loc:1 },  // Sat @ Wright St Market
+      { weekdays:[3,4,5], start:11, end:14, loc:0 },  // Wed,Thu,Fri 11a–2p
+    ] },
+
+  { id:"sutshi-dinner", name:"SUT-SHI (DINNER)", cuisine:"Asian", glyph:"asian", price:2,
+    cravings:["asian"], blurb:"Sushi takeaway — dinner service.",
+    favorite:false,
+    locations:[
+      { name:"SUT-SHI", bearing:40, dist:13,
+        latLng:{ lat:30.553756, lng:-87.076460 } }, // UNVERIFIED — 5432 US-90, Pace FL 32571
+    ],
+    recurrence:[
+      { weekdays:[2],     start:17, end:20, loc:0 },  // Tue 5p–8p
+      { weekdays:[3,4,5], start:17, end:20, loc:0 },  // Wed,Thu,Fri 5p–8p
+    ] },
+
+  { id:"flourish", name:"FLOURISH PIZZA", cuisine:"Global / Other", glyph:"global", price:2,
+    cravings:["global"], blurb:"Wood-fired pizza, roaming.",
+    favorite:false,
+    locations:[
+      { name:"Gary's Brewery & Biergarten", bearing:10, dist:2.3,
+        latLng:{ lat:30.442482, lng:-87.210195 } }, // UNVERIFIED — 208 Newman Ave, Pensacola FL
+      { name:"Alga Beer Co.", bearing:30, dist:1.8,
+        latLng:{ lat:30.432260, lng:-87.201793 } }, // UNVERIFIED — 2435 N 12th Ave (East Hill), Pensacola FL
+      { name:"Hitzman Park", bearing:35, dist:3.5,
+        latLng:{ lat:30.451190, lng:-87.183196 } }, // UNVERIFIED — 3221 Langley Ave (Scenic Heights), Pensacola FL
+    ],
+    occurrences:[
+      { date:"2026-06-03", start:17, end:21, loc:0 },
+      { date:"2026-06-04", start:17, end:21, loc:0 },
+      { date:"2026-06-06", start:16, end:20, loc:1 },
+      { date:"2026-06-07", start:16, end:19, loc:2 },
+      { date:"2026-06-13", start:16, end:20, loc:1 },
+      { date:"2026-06-14", start:12, end:17, loc:0 },
+      { date:"2026-06-16", start:16, end:20, loc:1 },
+      { date:"2026-06-24", start:17, end:21, loc:0 },
+      { date:"2026-06-25", start:16, end:20, loc:1 },
+      { date:"2026-06-27", start:16, end:19, loc:2 },
+      { date:"2026-06-30", start:16, end:20, loc:1 },
     ] },
 ];
 
