@@ -60,7 +60,7 @@ function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, o
 
 function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, onTapBody, onTapField,
                  speed, now, trucks, heading, onHeading, range, onRange, navId, navProgress, userPos,
-                 onFlick, spinning, compassLive, onTapHub, geoDenied }) {
+                 onFlick, spinning, compassLive, onTapHub, geoDenied, tapPing }) {
   const D = window.DYNAMO;
   const list = trucks || window.TRUCKS;
   const ringFracs = [0.25, 0.5, 1];
@@ -74,6 +74,11 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
   const bezelRef = useRefF(null);
   const rotRef = useRefF(null);
   const pinchRef = useRefF(null);
+  // Timestamp of the last touch-driven hub tap. iOS Safari (touch-action:none + the
+  // touchstart stopPropagation) suppresses the synthesized click, so the hub activates
+  // from onTouchEnd directly; this guards onClick against the ghost click that some
+  // browsers still fire afterward (deterministic, no preventDefault on passive touch).
+  const tapGuardRef = useRefF(0);
   const center = () => { const r = bezelRef.current.getBoundingClientRect(); return { x: r.left + r.width/2, y: r.top + r.height/2 }; };
   const angOf = (cxp, cyp) => { const c = center(); return Math.atan2(cyp - c.y, cxp - c.x) * 180 / Math.PI; };
 
@@ -193,14 +198,22 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
         return <div key={d} className={"compass" + (d==="N"?" north":"")} style={{ left: p.x, top: p.y }}>{d}</div>;
       })}
 
-      {/* HUB = YOU — tap to activate location + compass */}
+      {/* HUB = YOU — tap to request location (live compass is the compass chip's own gesture) */}
       <button type="button"
         className={"hub" + (compassLive ? " live" : "")}
-        onClick={onTapHub}
+        // onClick covers desktop; the ~700ms guard ignores the ghost click that follows a
+        // touch tap so we never double-activate.
+        onClick={() => { if (Date.now() - tapGuardRef.current < 700) return; onTapHub(); }}
         onMouseDown={e => e.stopPropagation()}
         onTouchStart={e => e.stopPropagation()}
+        // iOS Safari suppresses the synthesized click here, so activate from touchend directly.
+        // stopPropagation keeps the dial-drag guard; the timestamp de-dupes the trailing click.
+        onTouchEnd={e => { e.stopPropagation(); tapGuardRef.current = Date.now(); onTapHub(); }}
         aria-label={userPos ? "location active" : "tap to activate location"}>
         <span className="hub-pulse" aria-hidden="true" />
+        {/* TEMP marker (remove with the app.jsx tapPing state): increments each time the tap
+            reaches activateLive, to confirm on the phone that iOS Safari now registers the tap. */}
+        {tapPing > 0 && <span className="hub-tap-ping" aria-hidden="true">{tapPing}</span>}
         <svg viewBox="0 0 80 80" width="46" height="46">
           <circle cx="40" cy="40" r="37" className="hub-ring1" />
           <circle cx="40" cy="40" r="29" className="hub-ring2" />
