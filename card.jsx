@@ -56,7 +56,7 @@ function TruckCard({ truck, t, day, watched, userPos, onClose, onWatch, onGuide 
             {/* Signature cell only when there's a signature — otherwise no blank value /
                 orphaned "·". Price still shows in the cuisine line under the title. */}
             {truck.signature && (
-              <div className="card-cell card-wide"><div className="cell-k">SIGNATURE · {"$".repeat(truck.price)}</div>
+              <div className="card-cell card-wide"><div className="cell-k">SIGNATURE</div>
                 <div className="cell-v">{truck.signature}</div></div>
             )}
           </div>
