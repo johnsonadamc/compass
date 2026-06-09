@@ -129,24 +129,69 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
   // scroll up = zoom in = smaller rim range
   const onWheel = (e) => { e.preventDefault(); onRange(D.clamp(range * (1 + e.deltaY*0.0016), D.DEFAULT_RIM_MI * 0.25, D.DEFAULT_RIM_MI)); };
 
-  // ---- placement (with heading rotation + declump) ----
+  // ---- placement: gather → fan co-located clusters (angular, radius-preserved) → rotate → declump ----
   const uLat = userPos?.lat, uLng = userPos?.lng;
+  // Phase 1 — gather each entity's TRUE dial-space polar (baseAng, r); defer rotation + x/y.
   const placed = list.map((truck) => {
     const plan = D.planFor(truck, day, uLat, uLng); if (!plan) return null;
     let dist = plan.dist;
     if (truck.id === navId) dist = dist * (1 - navProgress * 0.93);
-    const rr = D.clamp(dist/range, 0, 1) * R;
-    const baseAng = (plan.bearing - 90);
-    const rad = baseAng * Math.PI/180;
-    const raw = rot(Math.cos(rad)*rr, Math.sin(rad)*rr);
+    const r = D.clamp(dist/range, 0, 1) * R;
+    const baseAng = (plan.bearing - 90);   // TRUE dial-space angle (deg), pre-rotation
     const size = D.lerp(31, 41, D.clamp(1 - plan.dist/D.DEFAULT_RIM_MI, 0, 1));
-    return { truck, x: raw.x, y: raw.y, r: rr, size, plan, dist,
+    return { truck, baseAng, fanAng: baseAng, r, size, plan, dist,
       power: D.powerAt(truck, t, day), match: matchOf(truck),
       // live-now pulse predicate: real clock on the real day only (mirrors the cards
       // & watchlist). Kept separate from scrubbed `power` so the pulse never follows
       // the scrub — lit/ghost stays on `power`, the ping rides `liveNow`.
       liveNow: day === 0 && D.powerAt(truck, D.realNowHour, 0) > 0.5 };
   }).filter(Boolean);
+
+  // Phase 2/3 — co-located entities fan symmetrically about their TRUE bearing at the SAME radius.
+  // RENDER-ONLY: only fanAng (→ x/y) changes; plan.bearing/dist stay true (the cards & Guide Me call
+  // planFor themselves and never read these x/y). Fan is in dial-space (pre-rot), so a cluster rotates
+  // as one rigid group under live compass / flick and never scatters when spinning. The homing truck
+  // is excluded so the nav needle keeps pointing at its true bearing.
+  // TUNABLES — device-dial-radius (R) dependent; tune on a real phone (R varies by screen):
+  const FAN_PAD = 9;                          // px — co-location gap (matches the declump threshold)
+  const FAN_TARGET_SEP = 46;                  // px — desired center-to-center separation after fanning
+  const FAN_MIN_STEP = 8 * Math.PI / 180;     // rad — floor so far-out clusters still visibly split
+  const FAN_MAX_TOTAL = 110 * Math.PI / 180;  // rad — cap on total spread (denser clusters pack tighter)
+  const ptOf = (pl) => { const a = pl.baseAng * Math.PI/180; return { x: Math.cos(a)*pl.r, y: Math.sin(a)*pl.r }; };
+  const fannable = placed.filter(pl => pl.truck.id !== navId);
+  const clustered = new Array(fannable.length).fill(false);
+  for (let i = 0; i < fannable.length; i++) {
+    if (clustered[i]) continue;
+    const group = [i]; const pi = ptOf(fannable[i]);
+    for (let j = i+1; j < fannable.length; j++) {
+      if (clustered[j]) continue;
+      const pj = ptOf(fannable[j]);
+      if (Math.hypot(pj.x-pi.x, pj.y-pi.y) < (fannable[i].size+fannable[j].size)/2 + FAN_PAD) group.push(j);
+    }
+    if (group.length > 1) {
+      group.forEach(k => clustered[k] = true);
+      group.sort((a,b) => fannable[a].truck.id < fannable[b].truck.id ? -1 : 1); // deterministic, stable per frame
+      const N = group.length;
+      const rMean = group.reduce((s,k) => s + fannable[k].r, 0) / N;
+      // chord sizing: separate ~FAN_TARGET_SEP px at radius rMean, floored, total spread capped.
+      let step = rMean > 1 ? 2 * Math.asin(Math.min(1, FAN_TARGET_SEP/(2*rMean))) : FAN_MIN_STEP;
+      step = Math.max(step, FAN_MIN_STEP);
+      if ((N-1)*step > FAN_MAX_TOTAL) step = FAN_MAX_TOTAL/(N-1);
+      group.forEach((k, idx) => { fannable[k].fanAng = fannable[k].baseAng + (idx - (N-1)/2) * step * 180/Math.PI; });
+    }
+  }
+
+  // Phase 4 — rotate by heading. Fanned angle drives the emblem x/y; the TRUE angle drives the
+  // facing-ping (trueX/trueY), so the ping stays tied to true bearing regardless of the fan.
+  for (const pl of placed) {
+    const fr = pl.fanAng * Math.PI/180, trr = pl.baseAng * Math.PI/180;
+    const f = rot(Math.cos(fr)*pl.r, Math.sin(fr)*pl.r);
+    const tp = rot(Math.cos(trr)*pl.r, Math.sin(trr)*pl.r);
+    pl.x = f.x; pl.y = f.y; pl.trueX = tp.x; pl.trueY = tp.y;
+  }
+
+  // Phase 5 — existing pixel-declump safety net for incidental cross-venue near-misses. No longer
+  // hits the degenerate zero-direction case: the fan separates coincident points first.
   for (let it = 0; it < 7; it++) {
     for (let i = 0; i < placed.length; i++) for (let j = i+1; j < placed.length; j++) {
       const a = placed[i], b = placed[j];
@@ -229,7 +274,9 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
       </button>
 
       {placed.map((pl) => {
-        const angDeg = Math.atan2(pl.y, pl.x) * 180/Math.PI;       // screen angle
+        // facing-ping keys off the TRUE rotated position (trueX/trueY), not the fanned x/y —
+        // a co-location nudge must not shift what the ping fires on (true bearing only).
+        const angDeg = Math.atan2(pl.trueY, pl.trueX) * 180/Math.PI;       // true screen angle
         const ahead = Math.abs(((angDeg + 90) % 360 + 360) % 360 - 0) < 22 || Math.abs(((angDeg+90)%360+360)%360 - 360) < 22;
         const isNav = pl.truck.id === navId;
         return <Emblem key={pl.truck.id} truck={pl.truck} t={t} pos={{x:pl.x,y:pl.y,r:pl.r}} size={pl.size}
