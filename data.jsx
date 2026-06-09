@@ -350,6 +350,15 @@ function bodyPos(truck, fieldR, day, userLat, userLng) {
   return { x: Math.cos(rad)*rr, y: Math.sin(rad)*rr, r: rr };
 }
 const walkMin = (d) => Math.max(2, Math.round(d * 18));
+// Conservative crow-flies drive estimate: ~25 mph local-roads average → whole minutes
+// (floored at 1 so a short hop never reads "0 min"). An estimate, not a routed time.
+const driveMin = (d) => Math.max(1, Math.round(d / 25 * 60));
+// Shared travel readout for both cards (no food-vs-events branch): walk at/under 1 mi,
+// drive beyond. Returns a display string carrying the mode word — e.g. "18 min walk" /
+// "31 min drive". walkMin already floors at 2, so a walk never reads "0 min".
+const travelEstimate = (distMi) => distMi <= 1.0
+  ? `${walkMin(distMi)} min walk`
+  : `${driveMin(distMi)} min drive`;
 
 // next upcoming windows for a truck from (day, t) forward — for alerts ledger
 // Optional userLat/userLng: threaded to planFor so displayed dist/bearing are geo-accurate.
@@ -600,7 +609,7 @@ function eventToEntity(ev) {
 window.DYNAMO = {
   DAY_START, DAY_END, DEFAULT_RIM_MI,
   fmtTime, fmtHourShort, fmtHM, clamp, lerp, smoothstep,
-  compassDir, planFor, powerAt, statusAt, liveStatusAt, bodyPos, walkMin, upcomingWindows, windowTimes,
+  compassDir, planFor, powerAt, statusAt, liveStatusAt, bodyPos, walkMin, driveMin, travelEstimate, upcomingWindows, windowTimes,
   eventToEntity, haversineMi, geoBearing, geoDestination,
   todayHour, realNowHour,
 };

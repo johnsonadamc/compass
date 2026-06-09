@@ -68,7 +68,7 @@ function EventCard({ entity, t, day, watched, userPos, onClose, onWatch, onGuide
               </div>
               <div className="card-cell">
                 <div className="cell-k">DISTANCE</div>
-                <div className="cell-v">{plan.dist.toFixed(1)} MI · {D.compassDir(plan.bearing)}</div>
+                <div className="cell-v">{plan.dist.toFixed(1)} mi · {D.travelEstimate(plan.dist)}</div>
               </div>
             </>
           ) : (
