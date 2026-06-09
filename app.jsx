@@ -376,7 +376,7 @@ function App() {
           {range < D.DEFAULT_RIM_MI * 0.99 && (
             <button className="zoom-chip" onClick={() => setRange(D.DEFAULT_RIM_MI)}>{range.toFixed(range<1?2:1)} MI · RESET</button>
           )}
-          <button className={"compass-chip" + (compassLive ? " live" : "")} onClick={enableCompass}>
+          <button className={"compass-chip" + (compassLive ? " live" : "") + (userPos && !compassLive ? " attn" : "")} onClick={enableCompass}>
             <span className="cc-rose">✣</span>
             <span className="cc-deg">{Math.round(heading)}°</span>
             <span className="cc-state">{compassLive ? "LIVE" : "MANUAL"}</span>

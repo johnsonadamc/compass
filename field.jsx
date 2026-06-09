@@ -222,11 +222,10 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
         {userPos
           ? <div className="hub-label">YOU</div>
           : <div className="hub-label hub-label-anchor">{window.CITIES[window.DEFAULT_CITY].hubLabel}</div>}
-        {!userPos
-          // denied/unavailable → quiet note (not a silent failure); a tap retries the request
-          ? <div className="hub-tap-invite">{geoDenied ? "LOCATION OFF · TAP TO RETRY" : "TAP TO LOCATE"}</div>
-          // located: live compass is its own gesture on the chip — point the way
-          : (!compassLive && <div className="hub-tap-invite">TAP ✣ FOR LIVE</div>)}
+        {!userPos &&
+          // denied/unavailable → quiet note (not a silent failure); a tap retries the request.
+          // Once located, the compass chip's own blue pulse signals the "go live" step (no center hint).
+          <div className="hub-tap-invite">{geoDenied ? "LOCATION OFF · TAP TO RETRY" : "TAP TO LOCATE"}</div>}
       </button>
 
       {placed.map((pl) => {

@@ -145,8 +145,9 @@ Placement is **real geography**, not hardcoded relative coordinates.
   location only; see "Geolocation & placement" for why the two prompts were split).
   The dial rotates to the device heading. iOS uses `webkitCompassHeading` (true
   north). Android uses `deviceorientationabsolute` when available, falling back to
-  relative `deviceorientation` `alpha`. Once located, a small **"TAP ✣ FOR LIVE"**
-  hint by the hub points to the chip for discoverability.
+  relative `deviceorientation` `alpha`. Once located but not yet live, the **compass
+  chip itself pulses** (a gentle `--blue` halo, reusing the `watchtab-pulse` keyframes)
+  to signal the "go live" step — no center hint text on the dial.
 - iOS requires `DeviceOrientationEvent.requestPermission()` called synchronously
   within the tap handler — preserved: the chip's own tap is that gesture (the chip
   owns compass activation, uncontended by the geolocation prompt).
