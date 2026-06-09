@@ -52,7 +52,7 @@ function TruckCard({ truck, t, day, watched, userPos, onClose, onWatch, onGuide 
             <div className="card-cell"><div className="cell-k">{days[day].today ? "TODAY" : days[day].weekday} HOURS</div>
               <div className="cell-v">{D.fmtHM(plan.open)}–{D.fmtHM(plan.close)}</div></div>
             <div className="card-cell"><div className="cell-k">DISTANCE</div>
-              <div className="cell-v">{plan.dist.toFixed(1)} mi · {D.travelEstimate(plan.dist)}</div></div>
+              <div className="cell-v">{D.fmtMiles(plan.dist)} mi · {D.travelEstimate(plan.dist)}</div></div>
             {/* Signature cell only when there's a signature — otherwise no blank value /
                 orphaned "·". Price still shows in the cuisine line under the title. */}
             {truck.signature && (

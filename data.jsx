@@ -359,6 +359,9 @@ const driveMin = (d) => Math.max(1, Math.round(d / 25 * 60));
 const travelEstimate = (distMi) => distMi <= 1.0
   ? `${walkMin(distMi)} min walk`
   : `${driveMin(distMi)} min drive`;
+// Shared mileage display formatter: one decimal under 10 mi ("3.5"), whole number at/
+// over 10 mi ("13"). Pure display — keep the "mi" unit at the call site.
+const fmtMiles = (d) => d >= 10 ? `${Math.round(d)}` : d.toFixed(1);
 
 // next upcoming windows for a truck from (day, t) forward — for alerts ledger
 // Optional userLat/userLng: threaded to planFor so displayed dist/bearing are geo-accurate.
@@ -609,7 +612,7 @@ function eventToEntity(ev) {
 window.DYNAMO = {
   DAY_START, DAY_END, DEFAULT_RIM_MI,
   fmtTime, fmtHourShort, fmtHM, clamp, lerp, smoothstep,
-  compassDir, planFor, powerAt, statusAt, liveStatusAt, bodyPos, walkMin, driveMin, travelEstimate, upcomingWindows, windowTimes,
+  compassDir, planFor, powerAt, statusAt, liveStatusAt, bodyPos, walkMin, driveMin, travelEstimate, fmtMiles, upcomingWindows, windowTimes,
   eventToEntity, haversineMi, geoBearing, geoDestination,
   todayHour, realNowHour,
 };

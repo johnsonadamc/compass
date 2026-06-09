@@ -50,7 +50,7 @@ function HappeningNow({ items, t, userPos, onPick, onWatch }) {
                     <div className="ld-win">
                       <span className="ld-day">TODAY</span>
                       <span className="ld-time">{D.fmtHM(p.open)}–{D.fmtHM(p.close)}</span>
-                      <span className="ld-dist">{p.dist.toFixed(1)}MI {D.compassDir(p.bearing)}</span>
+                      <span className="ld-dist">{D.fmtMiles(p.dist)}MI {D.compassDir(p.bearing)}</span>
                       <span className="ld-loc">{p.name}</span>
                       <span className="ld-livedot">● LIVE</span>
                     </div>
@@ -103,7 +103,7 @@ function ModeGroup({ label, items, day, t, userPos, onPick, onWatch }) {
                       <div key={i} className={"ld-win" + (w.live ? " live" : "")}>
                         <span className="ld-day">{days[w.day].today ? "TODAY" : days[w.day].weekday}</span>
                         <span className="ld-time">{D.fmtHM(w.open)}–{D.fmtHM(w.close)}</span>
-                        <span className="ld-dist">{w.dist.toFixed(1)}MI {D.compassDir(w.bearing)}</span>
+                        <span className="ld-dist">{D.fmtMiles(w.dist)}MI {D.compassDir(w.bearing)}</span>
                         <span className="ld-loc">{w.name}</span>
                         {w.live && <span className="ld-livedot">● LIVE</span>}
                       </div>

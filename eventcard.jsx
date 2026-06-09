@@ -68,7 +68,7 @@ function EventCard({ entity, t, day, watched, userPos, onClose, onWatch, onGuide
               </div>
               <div className="card-cell">
                 <div className="cell-k">DISTANCE</div>
-                <div className="cell-v">{plan.dist.toFixed(1)} mi · {D.travelEstimate(plan.dist)}</div>
+                <div className="cell-v">{D.fmtMiles(plan.dist)} mi · {D.travelEstimate(plan.dist)}</div>
               </div>
             </>
           ) : (
@@ -119,7 +119,7 @@ function EventCard({ entity, t, day, watched, userPos, onClose, onWatch, onGuide
               <div key={i} className={"ev-win" + (w.live ? " live" : "")}>
                 <span className="ev-win-day">{days[w.day].today ? "TODAY" : days[w.day].weekday}</span>
                 <span className="ev-win-time">{D.fmtHM(w.open)}–{D.fmtHM(w.close)}</span>
-                <span className="ev-win-dist">{w.dist.toFixed(1)} MI {D.compassDir(w.bearing)}</span>
+                <span className="ev-win-dist">{D.fmtMiles(w.dist)} MI {D.compassDir(w.bearing)}</span>
                 {w.live && <span className="ev-win-live">● LIVE</span>}
               </div>
             ))}
