@@ -39,9 +39,6 @@ function App() {
   // true once a location request is denied/unavailable — drives a quiet on-screen note
   // (a fully silent empty error handler was the original iOS bug that hid failures).
   const [geoDenied, setGeoDenied] = useState(false);
-  // TEMP (remove with the field.jsx hub-tap-ping marker): bumped the instant activateLive
-  // runs, to confirm on iOS Safari that the hub tap actually reaches the handler.
-  const [tapPing, setTapPing] = useState(0);
 
   const [vp, setVp] = useState({ w: window.innerWidth, h: window.innerHeight });
   const [topH, setTopH] = useState(185);
@@ -291,7 +288,6 @@ function App() {
   // owned by the compass chip (enableCompass → setupCompass). Location stays a deliberate
   // tap (not on page load). If location is denied/unavailable, the chip still enables compass.
   const activateLive = () => {
-    setTapPing(n => n + 1); // TEMP: proves the tap reached the handler (before the userPos guard)
     if (userPos) return;
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -394,7 +390,7 @@ function App() {
         speed={tweaks.speed} now={now} trucks={entities}
         heading={heading} onHeading={setHeading} range={range} onRange={setRange}
         navId={navId} navProgress={navProgress} userPos={userPos} onFlick={onFlick}
-        spinning={spinning} compassLive={compassLive} onTapHub={activateLive} geoDenied={geoDenied} tapPing={tapPing} />
+        spinning={spinning} compassLive={compassLive} onTapHub={activateLive} geoDenied={geoDenied} />
 
       {navTruck && (
         <div className={"nav-banner" + (arrived ? " arrived" : "")}>

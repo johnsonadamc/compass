@@ -60,7 +60,7 @@ function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, o
 
 function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, onTapBody, onTapField,
                  speed, now, trucks, heading, onHeading, range, onRange, navId, navProgress, userPos,
-                 onFlick, spinning, compassLive, onTapHub, geoDenied, tapPing }) {
+                 onFlick, spinning, compassLive, onTapHub, geoDenied }) {
   const D = window.DYNAMO;
   const list = trucks || window.TRUCKS;
   const ringFracs = [0.25, 0.5, 1];
@@ -211,9 +211,6 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
         onTouchEnd={e => { e.stopPropagation(); tapGuardRef.current = Date.now(); onTapHub(); }}
         aria-label={userPos ? "location active" : "tap to activate location"}>
         <span className="hub-pulse" aria-hidden="true" />
-        {/* TEMP marker (remove with the app.jsx tapPing state): increments each time the tap
-            reaches activateLive, to confirm on the phone that iOS Safari now registers the tap. */}
-        {tapPing > 0 && <span className="hub-tap-ping" aria-hidden="true">{tapPing}</span>}
         <svg viewBox="0 0 80 80" width="46" height="46">
           <circle cx="40" cy="40" r="37" className="hub-ring1" />
           <circle cx="40" cy="40" r="29" className="hub-ring2" />
