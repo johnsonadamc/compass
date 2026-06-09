@@ -409,7 +409,7 @@ function App() {
         </div>
       )}
 
-      <window.WatchTab count={watched.size} liveCount={liveWatchedCount} onOpen={() => setLedgerOpen(true)} />
+      <window.WatchTab count={allWatchedEntities.length} liveCount={liveWatchedCount} onOpen={() => setLedgerOpen(true)} />
 
       <window.Console t={t} day={day} onDay={setDay}
         onScrub={onScrub} onScrubEnd={onScrubEnd} dragRef={dragRef}
