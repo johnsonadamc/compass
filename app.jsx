@@ -4,14 +4,14 @@ const D = window.DYNAMO;
 
 // All available modes — add new entries here to extend the menu automatically.
 const MODES = [
-  { id: "food",   label: "FOOD",   sub: "SET THE HOUR. FIND THE FOOD.", throttleLabel: "SERVICE HOUR" },
   { id: "events", label: "EVENTS", sub: "SET THE HOUR. FIND THE FUN.",  throttleLabel: "EVENT HOUR"   },
+  { id: "food",   label: "FOOD",   sub: "SET THE HOUR. FIND THE FOOD.", throttleLabel: "SERVICE HOUR" },
 ];
 
 function App() {
   const tweaks = { palette: "noir", emblem: "roundel", speed: true, momentum: true };
 
-  const [mode, setMode] = useState("food"); // "food" | "events"
+  const [mode, setMode] = useState(MODES[0].id); // default + dropdown order both follow MODES (single source)
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const [t, setT] = useState(() => D.clamp(D.todayHour, D.DAY_START, D.DAY_END));
   const [day, setDay] = useState(0);
@@ -409,7 +409,7 @@ function App() {
         </div>
       )}
 
-      <window.WatchTab count={watched.size} liveCount={liveWatchedCount} onOpen={() => setLedgerOpen(true)} />
+      <window.WatchTab count={allWatchedEntities.length} liveCount={liveWatchedCount} onOpen={() => setLedgerOpen(true)} />
 
       <window.Console t={t} day={day} onDay={setDay}
         onScrub={onScrub} onScrubEnd={onScrubEnd} dragRef={dragRef}
