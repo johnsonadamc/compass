@@ -25,16 +25,17 @@
 // the engine (powerAt/statusAt/bodyPos/upcomingWindows, field.jsx, the cards) expects.
 
 const DAY_START = 7;   // 7:00
-const DAY_END = 22;    // 22:00
+const DAY_END = 24;    // 24:00 (midnight)
 
 function fmtTime(t) {
   let h = Math.floor(t);
   const m = Math.round((t - h) * 60);
-  const ampm = h >= 12 ? "PM" : "AM";
-  let hh = h % 12; if (hh === 0) hh = 12;
+  const h24 = ((h % 24) + 24) % 24;   // 24 -> 0 (midnight), keeps 7–23 unchanged
+  const ampm = h24 >= 12 ? "PM" : "AM";
+  let hh = h24 % 12; if (hh === 0) hh = 12;
   return { hh, mm: String(m).padStart(2, "0"), ampm, label: `${hh}:${String(m).padStart(2,"0")} ${ampm}` };
 }
-const fmtHourShort = (h) => `${(h % 12) || 12}${h >= 12 ? "P" : "A"}`;
+const fmtHourShort = (h) => { const x = ((h % 24) + 24) % 24; return `${(x % 12) || 12}${x >= 12 ? "P" : "A"}`; };
 const fmtHM = (t) => { const f = fmtTime(t); return `${f.hh}:${f.mm}${f.ampm[0].toLowerCase()}`; };
 
 // Format a Date's LOCAL calendar day as "YYYY-MM-DD". Built from local getters —
@@ -395,8 +396,9 @@ const EVENT_CATEGORIES = [
 
 // EVENTS — real Pensacola weekend events (Fri 6/12–Sun 6/14, 2026), dated occurrences[].
 // Multi-day events carry one occurrence row per date. start/end are decimal hours; TRUE
-// end times are kept even past the 22.0 throttle ceiling (8 late shows) so they're correct
-// once the throttle extends — they display clipped until then. glyph === category.
+// end times are kept even past the 24.0 throttle ceiling (2 late shows: Borgore 24.5,
+// Beach Dogz 25) so they're correct once a post-midnight cycle extends the range — they
+// display clipped (lit at midnight, no rendered close) until then. glyph === category.
 // latLng values are UNVERIFIED placeholders (estimated geometry around the anchor); each
 // carries its real street address in a "// UNVERIFIED — <address>" comment for later geocode.
 const EVENTS = [

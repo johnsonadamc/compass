@@ -3,7 +3,7 @@
 const { useRef: useRefC, useEffect: useEffectC } = React;
 
 /* TIME THROTTLE — a streamlined horizontal regulator. Drag/fling the handle;
-   momentum is handled by the parent. Hours 7A→10P with bold Deco ticks. */
+   momentum is handled by the parent. Hours 7A→12A with bold Deco ticks. */
 function Throttle({ t, onScrub, onScrubEnd, dragRef, label }) {
   const D = window.DYNAMO;
   const trackRef = useRefC(null);
@@ -36,7 +36,7 @@ function Throttle({ t, onScrub, onScrubEnd, dragRef, label }) {
     };
   }, []);
 
-  const hours = [7,9,11,13,15,17,19,21];
+  const hours = [7,9,11,13,15,17,19,21,23];
   const time = D.fmtTime(t);
 
   return (
