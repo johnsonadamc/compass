@@ -59,10 +59,14 @@ function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, o
 }
 
 function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, onTapBody, onTapField,
-                 speed, now, trucks, heading, onHeading, range, onRange, navId, navProgress, userPos,
+                 speed, now, trucks, days, rim, heading, onHeading, range, onRange, navId, navProgress, userPos,
                  onFlick, spinning, compassLive, onTapHub, geoDenied }) {
   const D = window.DYNAMO;
   const list = trucks || window.TRUCKS;
+  // Per-mode day frame + rim (FESTIVAL overrides); fall back to the globals so nothing
+  // breaks if a caller omits them.
+  const DAYSET = days || window.DAYS;
+  const RIM = rim ?? D.DEFAULT_RIM_MI;
   const ringFracs = [0.25, 0.5, 1];
   const milesLabel = (mi) => (mi < 1 ? mi.toFixed(2).replace(/0$/,'') : mi % 1 === 0 ? mi.toFixed(0) : mi.toFixed(1));
   const compass = [["N",0],["E",90],["S",180],["W",270]];
@@ -95,7 +99,7 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
     if (pinchRef.current && e.touches && e.touches.length === 2) {
       const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY;
       // pinch out (bigger distance) => zoom in => smaller range
-      onRange(D.clamp(pinchRef.current.r0 * (pinchRef.current.d0 / Math.hypot(dx,dy)), D.DEFAULT_RIM_MI * 0.25, D.DEFAULT_RIM_MI));
+      onRange(D.clamp(pinchRef.current.r0 * (pinchRef.current.d0 / Math.hypot(dx,dy)), RIM * 0.25, RIM));
       e.preventDefault(); return;
     }
     if (!rotRef.current) return;
@@ -127,24 +131,24 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
     rotRef.current = null; pinchRef.current = null;
   };
   // scroll up = zoom in = smaller rim range
-  const onWheel = (e) => { e.preventDefault(); onRange(D.clamp(range * (1 + e.deltaY*0.0016), D.DEFAULT_RIM_MI * 0.25, D.DEFAULT_RIM_MI)); };
+  const onWheel = (e) => { e.preventDefault(); onRange(D.clamp(range * (1 + e.deltaY*0.0016), RIM * 0.25, RIM)); };
 
   // ---- placement: gather → fan co-located clusters (angular, radius-preserved) → rotate → declump ----
   const uLat = userPos?.lat, uLng = userPos?.lng;
   // Phase 1 — gather each entity's TRUE dial-space polar (baseAng, r); defer rotation + x/y.
   const placed = list.map((truck) => {
-    const plan = D.planFor(truck, day, uLat, uLng); if (!plan) return null;
+    const plan = D.planFor(truck, day, uLat, uLng, DAYSET); if (!plan) return null;
     let dist = plan.dist;
     if (truck.id === navId) dist = dist * (1 - navProgress * 0.93);
     const r = D.clamp(dist/range, 0, 1) * R;
     const baseAng = (plan.bearing - 90);   // TRUE dial-space angle (deg), pre-rotation
-    const size = D.lerp(31, 41, D.clamp(1 - plan.dist/D.DEFAULT_RIM_MI, 0, 1));
+    const size = D.lerp(31, 41, D.clamp(1 - plan.dist/RIM, 0, 1));
     return { truck, baseAng, fanAng: baseAng, r, size, plan, dist,
-      power: D.powerAt(truck, t, day), match: matchOf(truck),
-      // live-now pulse predicate: real clock on the real day only (mirrors the cards
-      // & watchlist). Kept separate from scrubbed `power` so the pulse never follows
-      // the scrub — lit/ghost stays on `power`, the ping rides `liveNow`.
-      liveNow: day === 0 && D.powerAt(truck, D.realNowHour, 0) > 0.5 };
+      power: D.powerAt(truck, t, day, DAYSET), match: matchOf(truck),
+      // live-now pulse predicate: shared rule — real clock on the real today only (mirrors
+      // the cards & watchlist). Kept separate from scrubbed `power` so the pulse never
+      // follows the scrub — lit/ghost stays on `power`, the ping rides `liveNow`.
+      liveNow: D.isLiveNow(truck, day, DAYSET) };
   }).filter(Boolean);
 
   // Phase 2/3 — co-located entities fan symmetrically about their TRUE bearing at the SAME radius.

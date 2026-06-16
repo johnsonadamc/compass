@@ -1,20 +1,20 @@
 // eventcard.jsx — Event detail card for OFFLINE//EVENTS mode.
 // Exposes window.EventCard. Reuses the card shell and all card CSS.
-function EventCard({ entity, t, day, watched, userPos, onClose, onWatch, onGuide }) {
+function EventCard({ entity, t, day, days = window.DAYS, watched, userPos, onClose, onWatch, onGuide }) {
   if (!entity || !entity._event) return null;
   const D = window.DYNAMO;
   const DGlyph = window.DGlyph;
-  const days = window.DAYS;
   const ev = entity._event;
 
   // Geo-aware: real distance/bearing from the user's position when YOU is active;
-  // planFor falls back to the stored anchor estimate when userPos is null.
-  const plan = D.planFor(entity, day, userPos?.lat, userPos?.lng);
+  // planFor falls back to the stored anchor estimate when userPos is null. `days` is the
+  // active mode's day frame (DAYS for EVENTS; FESTIVAL_DAYS for FESTIVAL).
+  const plan = D.planFor(entity, day, userPos?.lat, userPos?.lng, days);
   // Live status: shared engine rule — now-relative claim ONLY on real today @ the
   // real clock; null on any other day → neutral schedule info, no vermillion. Same
   // statusAt tokens as the food card (one threshold set — food/events parity).
-  const liveStatus = D.liveStatusAt(entity, day);
-  const on = day === 0 && plan && D.powerAt(entity, D.realNowHour, 0) > 0.5;
+  const liveStatus = D.liveStatusAt(entity, day, days);
+  const on = D.isLiveNow(entity, day, days);
   const isWatched = watched.has(entity.id);
 
   const statusText = liveStatus ? {
@@ -27,7 +27,7 @@ function EventCard({ entity, t, day, watched, userPos, onClose, onWatch, onGuide
 
   // All upcoming occurrences (uses standard upcomingWindows since entity is normalised).
   // Trailing lat/lng matches drawer.jsx so upcoming distances are geo-aware too.
-  const upcoming = D.upcomingWindows(entity, day, t, 4, userPos?.lat, userPos?.lng);
+  const upcoming = D.upcomingWindows(entity, day, t, 4, userPos?.lat, userPos?.lng, days);
 
   const { sheetRef, dragStyle, gripHandlers } = window.useSwipeDismiss(onClose);
 
@@ -88,7 +88,7 @@ function EventCard({ entity, t, day, watched, userPos, onClose, onWatch, onGuide
         {/* occurrence strip — which days this event runs */}
         <div className="card-week">
           {days.map((dd) => {
-            const pl = D.planFor(entity, dd.idx);
+            const pl = D.planFor(entity, dd.idx, undefined, undefined, days);
             return (
               <div key={dd.idx} className={"wk" + (dd.idx === day ? " sel" : "") + (pl ? " out" : " gone")}>
                 <span className="wk-d">{dd.key === "TODAY" ? "TDY" : dd.key}</span>

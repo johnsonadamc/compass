@@ -11,15 +11,18 @@ function WatchTab({ count, liveCount, onOpen }) {
   );
 }
 
-// Resolve all watched items from both food + events globals.
-// Returns { foodItems, eventItems } — each an array of normalized entities.
+// Resolve all watched items from the food + events + festival globals.
+// Returns { foodItems, eventItems, festItems } — each an array of normalized entities.
 function resolveWatched(watched) {
   const D = window.DYNAMO;
   const foodItems = (window.TRUCKS || []).filter(tr => watched.has(tr.id));
   const eventItems = (window.EVENTS || [])
     .filter(ev => watched.has(ev.id))
     .map(D.eventToEntity);
-  return { foodItems, eventItems };
+  const festItems = (window.FESTIVAL || [])
+    .filter(ev => watched.has(ev.id))
+    .map(D.eventToEntity);
+  return { foodItems, eventItems, festItems };
 }
 
 function HappeningNow({ items, t, userPos, onPick, onWatch }) {
@@ -123,15 +126,19 @@ function ModeGroup({ label, items, day, t, userPos, onPick, onWatch }) {
 function AlertsLedger({ open, watched, day, t, mode, userPos, onClose, onPick, onWatch }) {
   if (!open) return null;
   const { sheetRef, dragStyle, gripHandlers } = window.useSwipeDismiss(onClose);
-  const { foodItems, eventItems } = resolveWatched(watched);
-  const allItems = [...foodItems, ...eventItems];
+  const { foodItems, eventItems, festItems } = resolveWatched(watched);
+  const allItems = [...foodItems, ...eventItems, ...festItems];
   const totalCount = allItems.length;
 
-  // current mode's group goes first
-  const primaryLabel = mode === "events" ? "EVENTS" : "FOOD";
-  const secondaryLabel = mode === "events" ? "FOOD" : "EVENTS";
-  const primaryItems = mode === "events" ? eventItems : foodItems;
-  const secondaryItems = mode === "events" ? foodItems : eventItems;
+  // Group by vertical, current mode's group first. `day` arrives already in the DAYS frame
+  // (app passes 0 in FESTIVAL mode), so the cross-mode upcoming list stays today-anchored.
+  const groupsById = { food:   { label:"FOOD",     items: foodItems },
+                       events: { label:"EVENTS",   items: eventItems },
+                       festival:{ label:"FESTIVAL", items: festItems } };
+  const order = mode === "food"     ? ["food","events","festival"]
+              : mode === "festival" ? ["festival","food","events"]
+              :                       ["events","food","festival"];
+  const groups = order.map(id => groupsById[id]);
 
   return (
     <div className="ledger-scrim" onClick={onClose}>
@@ -158,8 +165,9 @@ function AlertsLedger({ open, watched, day, t, mode, userPos, onClose, onPick, o
           ) : (
             <>
               <HappeningNow items={allItems} t={t} userPos={userPos} onPick={onPick} onWatch={onWatch} />
-              <ModeGroup label={primaryLabel} items={primaryItems} day={day} t={t} userPos={userPos} onPick={onPick} onWatch={onWatch} />
-              <ModeGroup label={secondaryLabel} items={secondaryItems} day={day} t={t} userPos={userPos} onPick={onPick} onWatch={onWatch} />
+              {groups.map(g => (
+                <ModeGroup key={g.label} label={g.label} items={g.items} day={day} t={t} userPos={userPos} onPick={onPick} onWatch={onWatch} />
+              ))}
             </>
           )}
         </div>

@@ -97,13 +97,13 @@ function Selector({ value, onChange }) {
 
 /* DAY DIAL — row of day keys above the throttle. Pip shows when a watched
    truck is out & nearby that day. */
-function DayDial({ day, onDay }) {
-  const days = window.DAYS;
+function DayDial({ day, onDay, days }) {
+  const ds = days || window.DAYS;   // per-mode day set (FESTIVAL passes its computed Fri/Sat/Sun)
   return (
     <div className="daydial">
       <div className="daydial-eyebrow">PLAN&nbsp;THE&nbsp;DAY</div>
       <div className="daydial-keys">
-        {days.map((dd) => (
+        {ds.map((dd) => (
           <button key={dd.idx} className={"daykey" + (dd.idx === day ? " active" : "")}
             onClick={() => onDay(dd.idx)} aria-label={dd.weekday}>
             <span className="daykey-wd">{dd.key}</span>
@@ -140,7 +140,7 @@ function LensStrip({ craving, onCraving, categories }) {
 function ConsolePanel(props) {
   return (
     <div className="console">
-      <DayDial day={props.day} onDay={props.onDay} />
+      <DayDial day={props.day} onDay={props.onDay} days={props.days} />
       <div className="console-rule" />
       <Throttle t={props.t} onScrub={props.onScrub} onScrubEnd={props.onScrubEnd} dragRef={props.dragRef} label={props.throttleLabel} />
     </div>

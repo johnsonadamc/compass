@@ -106,6 +106,27 @@ const DAYS = Array.from({ length: 7 }, (_, d) => {
   };
 });
 
+// ---- FESTIVAL day set (independent of the rolling-7 DAYS) ----
+// The STATIC demo festival runs the current-or-upcoming Fri/Sat/Sun, computed LIVE from
+// the real Central date so the prototype never goes stale. Friday anchors the weekend that
+// CONTAINS today (when today is Fri/Sat/Sun → that day lights live) or FOLLOWS it (Mon–Thu →
+// upcoming, nothing live yet). Same getDay (0=Sun) convention + LOCAL-getter isoOf as DAYS.
+// Each entry mirrors a DAYS entry's shape; `today` flags the entry whose real date == real
+// today. The shared live-now rule (isLiveNow / liveStatusAt) keys off this `today` flag —
+// for the rolling DAYS array days[day].today is true iff day===0, so the rule is byte-
+// identical there; for FESTIVAL_DAYS it stays correct without any per-mode branch.
+const FEST_TODAY_ISO = DAYS[0].iso;
+// Mon→+4 … Thu→+1, Fri→0, Sat→-1, Sun→-2 (offset from today to the weekend's Friday).
+const FEST_FRI_OFFSET = 5 - (cityNow.weekday === 0 ? 7 : cityNow.weekday);
+const FESTIVAL_DAYS = Array.from({ length: 3 }, (_, i) => {
+  const dt = new Date(cityNow.year, cityNow.month - 1, cityNow.day + FEST_FRI_OFFSET + i);
+  const wd = dt.getDay();
+  const iso = isoOf(dt);
+  const today = iso === FEST_TODAY_ISO;
+  return { idx: i, key: today ? "TODAY" : WEEKDAYS[wd], weekday: WEEKDAYS[wd],
+           date: dt.getDate(), iso, wd, today };
+});
+
 /* ---- GEO MATH ----
    Haversine + bearing: convert real lat/lng pairs to distance (miles) and
    compass bearing. geoDestination is the inverse — used offline to derive
@@ -284,8 +305,8 @@ const compassDir = (bearing) => DIRS[Math.round(((bearing % 360) / 45)) % 8];
 // Runs at RENDER time (no load-time expansion). Optional userLat/userLng: when provided
 // and the location has a latLng, bearing/dist are computed from real geography; otherwise
 // falls back to stored estimated values. Returns the legacy { open, close, … } contract.
-function planFor(entity, day, userLat, userLng) {
-  const dd = DAYS[day]; if (!dd) return null;
+function planFor(entity, day, userLat, userLng, days = DAYS) {
+  const dd = days[day]; if (!dd) return null;
   const { iso, wd } = dd;
   // (1) explicit dated occurrence wins (and overrides recurrence on its date)
   let hit = entity.occurrences ? entity.occurrences.find(o => o.date === iso) : null;
@@ -317,35 +338,50 @@ function windowTimes(entity) {
   return out;
 }
 
-// power 0..1 over the service window on a day with soft ramps
-function powerAt(truck, t, day) {
-  const p = planFor(truck, day); if (!p) return 0;
+// power 0..1 over the service window on a day with soft ramps.
+// `days` selects the day frame (DAYS for FOOD/EVENTS; FESTIVAL_DAYS for FESTIVAL) and is
+// threaded straight to planFor; defaulting to DAYS keeps every existing caller identical.
+function powerAt(truck, t, day, days = DAYS) {
+  const p = planFor(truck, day, undefined, undefined, days); if (!p) return 0;
   const edge = 0.45;
   const a = smoothstep(p.open - edge, p.open + edge*0.5, t);
   const b = 1 - smoothstep(p.close - edge*0.5, p.close + edge, t);
   return clamp(Math.min(a, b), 0, 1);
 }
-function statusAt(truck, t, day) {
-  const p = planFor(truck, day); if (!p) return "off";
-  const pow = powerAt(truck, t, day);
+function statusAt(truck, t, day, days = DAYS) {
+  const p = planFor(truck, day, undefined, undefined, days); if (!p) return "off";
+  const pow = powerAt(truck, t, day, days);
   if (pow <= 0.03) return t < p.open ? "soon" : "closed";
   if (t > p.open && t < p.open + 0.6) return "opening";
   if (t > p.close - 0.75 && t < p.close) return "closing";
   return "open";
 }
-// Live status for a card's status line — now-relative claims ONLY on the real
-// present day (day 0), computed against the real clock (realNowHour), NOT the
-// scrubbed throttle. Mirrors the watchlist HAPPENING NOW rule. Returns a neutral
-// statusAt token when viewing real today, or null on any other day (the caller
-// then shows neutral viewed-day schedule info instead of a live claim).
-function liveStatusAt(entity, day) {
-  if (day !== 0) return null;
-  return statusAt(entity, realNowHour, 0);
+// Shared "is this entity live RIGHT NOW" predicate — ONE rule for the dial ping, both
+// cards, and the watchlist badge. True only when the VIEWED day is the real today
+// (days[day].today) AND the entity is within an open window at the real clock. For the
+// rolling DAYS array days[day].today is true iff day===0, so this is byte-identical to the
+// prior inline `day===0 && powerAt(realNowHour,0)>0.5`; for a per-mode day set
+// (FESTIVAL_DAYS) it keys off the real-today flag, so no false "now" appears on a festival
+// day that is not actually today.
+function isLiveNow(entity, day, days = DAYS) {
+  const dd = days[day];
+  return !!(dd && dd.today && powerAt(entity, realNowHour, day, days) > 0.5);
+}
+// Live status for a card's status line — now-relative claims ONLY on the real present day,
+// computed against the real clock (realNowHour), NOT the scrubbed throttle. Mirrors the
+// watchlist HAPPENING NOW rule. The "is it really today?" test is days[day].today (for the
+// rolling DAYS array that is exactly day===0; for FESTIVAL_DAYS it is the festival day whose
+// date == today). Returns a neutral statusAt token when viewing real today, or null on any
+// other day (the caller then shows neutral viewed-day schedule info instead of a live claim).
+function liveStatusAt(entity, day, days = DAYS) {
+  const dd = days[day];
+  if (!dd || !dd.today) return null;
+  return statusAt(entity, realNowHour, day, days);
 }
 // bearing+dist -> field offset for the day (null if off)
 // Optional userLat/userLng: threaded to planFor for geo-accurate bearing/dist.
-function bodyPos(truck, fieldR, day, userLat, userLng) {
-  const p = planFor(truck, day, userLat, userLng); if (!p) return null;
+function bodyPos(truck, fieldR, day, userLat, userLng, days = DAYS) {
+  const p = planFor(truck, day, userLat, userLng, days); if (!p) return null;
   const rad = (p.bearing - 90) * Math.PI / 180;
   const rr = clamp(p.dist / DEFAULT_RIM_MI, 0, 1) * fieldR;
   return { x: Math.cos(rad)*rr, y: Math.sin(rad)*rr, r: rr };
@@ -366,10 +402,10 @@ const fmtMiles = (d) => d >= 10 ? `${Math.round(d)}` : d.toFixed(1);
 
 // next upcoming windows for a truck from (day, t) forward — for alerts ledger
 // Optional userLat/userLng: threaded to planFor so displayed dist/bearing are geo-accurate.
-function upcomingWindows(truck, fromDay, fromT, max = 3, userLat, userLng) {
+function upcomingWindows(truck, fromDay, fromT, max = 3, userLat, userLng, days = DAYS) {
   const out = [];
-  for (let d = fromDay; d < 7 && out.length < max; d++) {
-    const p = planFor(truck, d, userLat, userLng); if (!p) continue;
+  for (let d = fromDay; d < days.length && out.length < max; d++) {
+    const p = planFor(truck, d, userLat, userLng, days); if (!p) continue;
     if (d === fromDay && fromT >= p.close) continue; // already over today
     out.push({ day: d, ...p, live: d === fromDay && fromT >= p.open && fromT < p.close });
   }
@@ -524,6 +560,122 @@ const EVENTS = [
     occurrences:[ { date:"2026-06-12", start:21, end:25 } ] },
 ];
 
+// ---- FESTIVAL vertical (STATIC — bounded multi-venue downtown music festival demo) ----
+// DEMO / DUMMY DATA. STATIC is a FICTIONAL festival built to prove the bounded-festival
+// direction. The four VENUE COORDINATES below are REAL (verified close-in downtown Pensacola)
+// — that is deliberate: the festival's value is the dial pointing correctly BETWEEN nearby
+// venues. Everything else — every act/vendor/special name, set time, blurb, price — is
+// INVENTED prototype content (this is the explicit, clearly-labeled demo exception to the
+// "don't invent data" rule; it does NOT apply to the real FOOD/EVENTS verticals). Festival
+// dates are computed LIVE (FESTIVAL_DAYS) so the demo never goes stale. All windows are
+// authored within the 17:00–24:00 throttle range (no past-midnight). Many acts deliberately
+// SHARE a venue's coords on the same night — and the 4 market vendors share IDENTICAL
+// Hunter Amphitheater coords — to exercise the co-location fan.
+const FEST_ANCHOR = CITIES[DEFAULT_CITY].center;
+// Fallback bearing/dist are derived from the city anchor (downtown) so the dial reads right
+// even before geolocation; with YOU active, planFor recomputes from the real latLng.
+const fGeo = (lat, lng) => ({ bearing: geoBearing(FEST_ANCHOR.lat, FEST_ANCHOR.lng, lat, lng),
+                              dist:    haversineMi(FEST_ANCHOR.lat, FEST_ANCHOR.lng, lat, lng),
+                              latLng:  { lat, lng } });
+// Real, verified venue coordinates.
+const FV_VINYL  = [30.412691, -87.215289];  // Vinyl Music Hall
+const FV_HANDLE = [30.417892, -87.214080];  // The Handlebar
+const FV_BETTY  = [30.416439, -87.223341];  // Betty's on Belmont
+const FV_HUNTER = [30.403187, -87.217492];  // Hunter Amphitheater at Maritime Park
+const FD = FESTIVAL_DAYS.map(d => d.iso);    // [FriISO, SatISO, SunISO] — computed live
+const fOcc    = (di, start, end) => [{ date: FD[di], start, end }];          // single festival day
+const fOccAll = (start, end)     => FD.map(iso => ({ date: iso, start, end })); // all three days
+
+const FESTIVAL_CATEGORIES = [
+  { id:"all",    label:"ALL",          glyph:"all",     tag:null },
+  { id:"music",  label:"Music",        glyph:"music",   tag:"music" },
+  { id:"food",   label:"Food & Drink", glyph:"burgers", tag:"food" },
+  { id:"market", label:"Market",       glyph:"markets", tag:"market" },
+];
+
+const FESTIVAL = [
+  // ===== MUSIC · Vinyl Music Hall (3 Fri / 2 Sat / 2 Sun — sequential sets, same coords) =====
+  { id:"st-vinyl-f1", name:"Neon Tigers", venue:"Vinyl Music Hall", category:"music", glyph:"music",
+    blurb:"Synth-pop openers, all hooks and neon.", price:"$20",
+    location: fGeo(...FV_VINYL), occurrences: fOcc(0, 19, 20) },
+  { id:"st-vinyl-f2", name:"The Saltwater Saints", venue:"Vinyl Music Hall", category:"music", glyph:"music",
+    blurb:"Gulf-coast indie rock with a horn section.", price:"$20",
+    location: fGeo(...FV_VINYL), occurrences: fOcc(0, 20, 21) },
+  { id:"st-vinyl-f3", name:"DELTA STATIC (headliner)", venue:"Vinyl Music Hall", category:"music", glyph:"music",
+    blurb:"The festival namesake — electro-rock headline set.", price:"$28",
+    location: fGeo(...FV_VINYL), occurrences: fOcc(0, 21, 22) },
+  { id:"st-vinyl-s1", name:"Marigold Avenue", venue:"Vinyl Music Hall", category:"music", glyph:"music",
+    blurb:"Dream-pop quartet, lush and loud.", price:"$18",
+    location: fGeo(...FV_VINYL), occurrences: fOcc(1, 20, 21) },
+  { id:"st-vinyl-s2", name:"Cassette Future", venue:"Vinyl Music Hall", category:"music", glyph:"music",
+    blurb:"Saturday headliner — analog synthwave.", price:"$26",
+    location: fGeo(...FV_VINYL), occurrences: fOcc(1, 21, 22) },
+  { id:"st-vinyl-u1", name:"Sunday Choir Club", venue:"Vinyl Music Hall", category:"music", glyph:"music",
+    blurb:"Gospel-soul revue to close the weekend.", price:"$15",
+    location: fGeo(...FV_VINYL), occurrences: fOcc(2, 18, 19) },
+  { id:"st-vinyl-u2", name:"Low Tide Orchestra", venue:"Vinyl Music Hall", category:"music", glyph:"music",
+    blurb:"Cinematic post-rock finale.", price:"$18",
+    location: fGeo(...FV_VINYL), occurrences: fOcc(2, 19, 20) },
+
+  // ===== MUSIC · The Handlebar (2 Fri / 1 Sat / 1 Sun) =====
+  { id:"st-handle-f1", name:"Bicycle Thieves", venue:"The Handlebar", category:"music", glyph:"music",
+    blurb:"Scrappy garage-punk trio.", price:"Free",
+    location: fGeo(...FV_HANDLE), occurrences: fOcc(0, 20, 21) },
+  { id:"st-handle-f2", name:"Velvet Hammers", venue:"The Handlebar", category:"music", glyph:"music",
+    blurb:"Late-night blues-rock barnburner.", price:"Free",
+    location: fGeo(...FV_HANDLE), occurrences: fOcc(0, 21, 22) },
+  { id:"st-handle-s1", name:"The Porch Lights", venue:"The Handlebar", category:"music", glyph:"music",
+    blurb:"Alt-country and pedal steel.", price:"Free",
+    location: fGeo(...FV_HANDLE), occurrences: fOcc(1, 21, 22) },
+  { id:"st-handle-u1", name:"Acoustic Sunday w/ Jonah Reed", venue:"The Handlebar", category:"music", glyph:"music",
+    blurb:"Stripped-back singer-songwriter session.", price:"Free",
+    location: fGeo(...FV_HANDLE), occurrences: fOcc(2, 18, 19) },
+
+  // ===== MUSIC · Betty's on Belmont (1 Fri / 1 Sat) =====
+  { id:"st-betty-f1", name:"DJ Half-Step", venue:"Betty's on Belmont", category:"music", glyph:"music",
+    blurb:"Vinyl-only disco and soul 45s.", price:"$5",
+    location: fGeo(...FV_BETTY), occurrences: fOcc(0, 19, 20.5) },
+  { id:"st-betty-s1", name:"Midnight Belmont Revue", venue:"Betty's on Belmont", category:"music", glyph:"music",
+    blurb:"Brass-funk dance party.", price:"$5",
+    location: fGeo(...FV_BETTY), occurrences: fOcc(1, 20, 21.5) },
+
+  // ===== MUSIC · Hunter Amphitheater main stage (1 Fri / 1 Sat) =====
+  { id:"st-hunter-f1", name:"Harbor Lights (main stage)", venue:"Hunter Amphitheater at Maritime Park", category:"music", glyph:"music",
+    blurb:"Waterfront main-stage headliner.", price:"$30",
+    location: fGeo(...FV_HUNTER), occurrences: fOcc(0, 21, 22.5) },
+  { id:"st-hunter-s1", name:"Sundown Symphonic (main stage)", venue:"Hunter Amphitheater at Maritime Park", category:"music", glyph:"music",
+    blurb:"Pops orchestra over the bay.", price:"$30",
+    location: fGeo(...FV_HUNTER), occurrences: fOcc(1, 20.5, 22) },
+
+  // ===== FOOD & DRINK · festival-long specials at nearby spots (UNVERIFIED placeholder coords) =====
+  { id:"st-fd-pourhouse", name:"Palafox Pour House — Festival Happy Hour", venue:"Palafox Pour House", category:"food", glyph:"burgers",
+    blurb:"$4 drafts and frozen palomas all festival.", price:"$",
+    location: fGeo(30.41050, -87.21600), occurrences: fOccAll(17, 20) }, // UNVERIFIED — downtown placeholder
+  { id:"st-fd-tacocart", name:"Garden St. Taco Cart", venue:"Garden St. Taco Cart", category:"food", glyph:"burgers",
+    blurb:"Street tacos and elotes by the route.", price:"$$",
+    location: fGeo(30.41180, -87.21850), occurrences: fOccAll(18, 23) }, // UNVERIFIED — downtown placeholder
+  { id:"st-fd-belmontbeer", name:"Belmont Beer Garden", venue:"Belmont Beer Garden", category:"food", glyph:"burgers",
+    blurb:"Open-air taps next to Betty's.", price:"$$",
+    location: fGeo(30.41610, -87.22260), occurrences: fOccAll(17, 24) }, // UNVERIFIED — near Betty's placeholder
+  { id:"st-fd-maritime", name:"Maritime Coffee + Cocktails", venue:"Maritime Coffee + Cocktails", category:"food", glyph:"burgers",
+    blurb:"Espresso martinis steps from the amphitheater.", price:"$$",
+    location: fGeo(30.40450, -87.21760), occurrences: fOccAll(17, 22) }, // UNVERIFIED — near Hunter placeholder
+
+  // ===== MARKET · 4 vendors clustered ON the Hunter Amphitheater grounds (IDENTICAL coords) =====
+  { id:"st-mkt-vintage", name:"STATIC Makers Market — Vintage", venue:"Hunter Amphitheater grounds", category:"market", glyph:"markets",
+    blurb:"Curated vintage clothing and ephemera.", price:"Free",
+    location: fGeo(...FV_HUNTER), occurrences: fOccAll(17, 22) },
+  { id:"st-mkt-craft", name:"STATIC Makers Market — Craft", venue:"Hunter Amphitheater grounds", category:"market", glyph:"markets",
+    blurb:"Local makers: ceramics, prints, jewelry.", price:"Free",
+    location: fGeo(...FV_HUNTER), occurrences: fOccAll(17, 22) },
+  { id:"st-mkt-records", name:"STATIC Makers Market — Records", venue:"Hunter Amphitheater grounds", category:"market", glyph:"markets",
+    blurb:"Crate-digging: vinyl, tapes, gear.", price:"Free",
+    location: fGeo(...FV_HUNTER), occurrences: fOccAll(17, 22) },
+  { id:"st-mkt-food", name:"STATIC Makers Market — Food Trucks", venue:"Hunter Amphitheater grounds", category:"market", glyph:"markets",
+    blurb:"Rotating food-truck row on the green.", price:"Free",
+    location: fGeo(...FV_HUNTER), occurrences: fOccAll(17, 22) },
+];
+
 // Normalise an event into the shared entity interface so Field/DYNAMO helpers work
 // unchanged. Events and trucks now share the date-aware model, so recurrence/occurrences/
 // exceptions carry straight through; only the single `location` is wrapped into locations[].
@@ -546,14 +698,16 @@ function eventToEntity(ev) {
 window.DYNAMO = {
   DAY_START, DAY_END, DEFAULT_RIM_MI,
   fmtTime, fmtHourShort, fmtHM, clamp, lerp, smoothstep,
-  compassDir, planFor, powerAt, statusAt, liveStatusAt, bodyPos, walkMin, driveMin, travelEstimate, fmtMiles, upcomingWindows, windowTimes,
+  compassDir, planFor, powerAt, statusAt, liveStatusAt, isLiveNow, bodyPos, walkMin, driveMin, travelEstimate, fmtMiles, upcomingWindows, windowTimes,
   eventToEntity, haversineMi, geoBearing, geoDestination,
-  todayHour, realNowHour,
+  todayHour, realNowHour, FESTIVAL_DAYS,
 };
 window.TRUCKS = TRUCKS;
 window.CRAVINGS = CRAVINGS;
 window.DAYS = DAYS;
 window.EVENTS = EVENTS;
 window.EVENT_CATEGORIES = EVENT_CATEGORIES;
+window.FESTIVAL = FESTIVAL;
+window.FESTIVAL_CATEGORIES = FESTIVAL_CATEGORIES;
 window.CITIES = CITIES;
 window.DEFAULT_CITY = DEFAULT_CITY;

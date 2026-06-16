@@ -11,7 +11,7 @@ function TruckCard({ truck, t, day, watched, userPos, onClose, onWatch, onGuide 
   // engine rule, mirrors the watchlist). null on any other day → neutral schedule
   // info, no vermillion. Emblem lit/ghost on the dial stays scrubbed (field.jsx).
   const liveStatus = D.liveStatusAt(truck, day);
-  const liveOn = day === 0 && plan && D.powerAt(truck, D.realNowHour, 0) > 0.5;
+  const liveOn = D.isLiveNow(truck, day);   // shared rule (FOOD always uses DAYS → day===0)
   const statusText = liveStatus ? {
     open:"OPEN NOW", opening:"JUST OPENED", closing:"CLOSING SOON",
     soon: plan ? `OPENS ${D.fmtTime(plan.open).label}` : "", closed:"CLOSED FOR THE DAY",

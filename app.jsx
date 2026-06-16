@@ -4,8 +4,12 @@ const D = window.DYNAMO;
 
 // All available modes — add new entries here to extend the menu automatically.
 const MODES = [
-  { id: "events", label: "EVENTS", sub: "SET THE HOUR. FIND THE FUN.",  throttleLabel: "EVENT HOUR"   },
-  { id: "food",   label: "FOOD",   sub: "SET THE HOUR. FIND THE FOOD.", throttleLabel: "SERVICE HOUR" },
+  { id: "events",   label: "EVENTS",   sub: "SET THE HOUR. FIND THE FUN.",  throttleLabel: "EVENT HOUR"   },
+  { id: "food",     label: "FOOD",     sub: "SET THE HOUR. FIND THE FOOD.", throttleLabel: "SERVICE HOUR" },
+  // FESTIVAL is a bounded demo vertical (see data.jsx STATIC). rimMi overrides the global
+  // DEFAULT_RIM_MI so the tight downtown venue cluster reads at ~1 mi; modes without rimMi
+  // fall back to 5 mi. EVENTS stays MODES[0] (default landing + dropdown order unchanged).
+  { id: "festival", label: "FESTIVAL", sub: "SET THE TIME. FIND THE SET.",  throttleLabel: "SET TIME", rimMi: 1.0 },
 ];
 
 function App() {
@@ -58,11 +62,19 @@ function App() {
   const DIAL_FRICTION = 0.976;  // velocity multiplier per 16ms frame — ~3.5s to stop (weighted-wheel feel)
   const DIAL_STOP_VEL = 0.002;  // deg/ms below which spin is cancelled
 
-  // mode-derived data — computed once per mode change
+  // mode-derived data — computed once per mode change. FESTIVAL entities are EVENTS-shaped,
+  // so the same eventToEntity normalizer absorbs them with no engine branch.
   const entities = useMemo(() =>
-    mode === "food" ? window.TRUCKS : window.EVENTS.map(D.eventToEntity),
+    mode === "food"     ? window.TRUCKS :
+    mode === "festival" ? window.FESTIVAL.map(D.eventToEntity) :
+                          window.EVENTS.map(D.eventToEntity),
   [mode]);
-  const activeCategories = mode === "food" ? window.CRAVINGS : window.EVENT_CATEGORIES;
+  const activeCategories = mode === "food"     ? window.CRAVINGS :
+                           mode === "festival" ? window.FESTIVAL_CATEGORIES :
+                                                 window.EVENT_CATEGORIES;
+  // Per-mode day frame: FESTIVAL has its own computed Fri/Sat/Sun set; FOOD/EVENTS use the
+  // rolling-7 DAYS. Threaded into the day-dial, Field, the card, and the engine helpers.
+  const activeDays = mode === "festival" ? D.FESTIVAL_DAYS : window.DAYS;
 
   // Snap points: all window start/end times across all entities. windowTimes (data.jsx)
   // reads the schedule model so app.jsx stays ignorant of occurrences/recurrence shape.
@@ -85,15 +97,19 @@ function App() {
       if (close) document.removeEventListener("click", close);
     };
   }, [modeMenuOpen]);
+  const rimOf = (m) => (MODES.find(x => x.id === m)?.rimMi) ?? D.DEFAULT_RIM_MI;
   const switchMode = (m) => {
     setMode(m);
     setCraving(0);
+    setDay(0);            // day indices are per-mode (FESTIVAL has only 0–2); reset to avoid OOB
+    setRange(rimOf(m));   // snap the zoom to the new mode's rim (FESTIVAL ~1 mi, others 5)
     setCardId(null);
     setSelectedId(null);
     setModeMenuOpen(false);
   };
 
   const currentMode = MODES.find(m => m.id === mode) || MODES[0];
+  const activeRim = currentMode.rimMi ?? D.DEFAULT_RIM_MI;
 
   // Geolocation and compass are activated together by a user tap on the YOU hub (see activateLive).
   // Auto-requesting on mount was unreliable on mobile (permission prompt often silently dropped).
@@ -318,14 +334,17 @@ function App() {
   // card lookup — truck in food mode, event entity in events mode
   const cardEntity = entities.find(x => x.id === cardId) || null;
   const navTruck = navId ? entities.find(x => x.id === navId) : null;
-  const navPlan = navTruck ? D.planFor(navTruck, day, userPos?.lat, userPos?.lng) : null;
+  const navPlan = navTruck ? D.planFor(navTruck, day, userPos?.lat, userPos?.lng, activeDays) : null;
   const navDist = navPlan ? navPlan.dist * (1 - navProgress * 0.93) : 0;
   // Header count stays SCRUBBED — it's the exploratory dial readout (how many are
   // lit at the hour you're viewing), not a live claim. So the word "NOW" only shows
   // when you're actually viewing real today at the real clock; otherwise label it
   // with the viewed hour ("OPEN 6P") so it never makes a false live claim.
-  const openCount = entities.filter(e => D.powerAt(e, t, day) > 0.5).length;
-  const viewingRealNow = day === 0 && Math.abs(t - D.realNowHour) < 0.25;
+  const openCount = entities.filter(e => D.powerAt(e, t, day, activeDays) > 0.5).length;
+  // "NOW" is a present-tense claim → only when the VIEWED day is the real today (for the
+  // rolling DAYS array activeDays[day].today ⟺ day===0, so FOOD/EVENTS are unchanged; for
+  // FESTIVAL it is the festival day whose date == today).
+  const viewingRealNow = !!activeDays[day]?.today && Math.abs(t - D.realNowHour) < 0.25;
   const openWord = mode === "food" ? "OPEN" : "ON";
   // "NOW" is the live-status truth-claim (real today + real hour only); the scrubbed
   // case drops the clock-time readout entirely — count-only, no false present-tense.
@@ -335,7 +354,8 @@ function App() {
   const allWatchedEntities = useMemo(() => {
     const trucks = (window.TRUCKS || []).filter(tr => watched.has(tr.id));
     const events = (window.EVENTS || []).filter(ev => watched.has(ev.id)).map(D.eventToEntity);
-    return [...trucks, ...events];
+    const fest   = (window.FESTIVAL || []).filter(ev => watched.has(ev.id)).map(D.eventToEntity);
+    return [...trucks, ...events, ...fest];
   }, [watched]);
   const liveWatchedCount = allWatchedEntities.filter(e => D.powerAt(e, D.realNowHour, 0) > 0.5).length;
 
@@ -375,8 +395,8 @@ function App() {
         <window.LensStrip key={mode} craving={craving} onCraving={setCraving} categories={activeCategories} />
 
         <div className="chips-row">
-          {range < D.DEFAULT_RIM_MI * 0.99 && (
-            <button className="zoom-chip" onClick={() => setRange(D.DEFAULT_RIM_MI)}>{range.toFixed(range<1?2:1)} MI · RESET</button>
+          {range < activeRim * 0.99 && (
+            <button className="zoom-chip" onClick={() => setRange(activeRim)}>{range.toFixed(range<1?2:1)} MI · RESET</button>
           )}
           <button className={"compass-chip" + (compassLive ? " live" : "") + (userPos && !compassLive ? " attn" : "")} onClick={enableCompass}>
             <span className="cc-rose">✣</span>
@@ -389,7 +409,7 @@ function App() {
       <window.Field t={t} day={day} fieldR={fieldR} cx={fieldCx} cy={fieldCy}
         matchOf={matchOf} shape={tweaks.emblem} selectedId={selectedId} watched={watched}
         onTapBody={onTapBody} onTapField={() => { setSelectedId(null); setModeMenuOpen(false); }}
-        speed={tweaks.speed} now={now} trucks={entities}
+        speed={tweaks.speed} now={now} trucks={entities} days={activeDays} rim={activeRim}
         heading={heading} onHeading={setHeading} range={range} onRange={setRange}
         navId={navId} navProgress={navProgress} userPos={userPos} onFlick={onFlick}
         spinning={spinning} compassLive={compassLive} onTapHub={activateLive} geoDenied={geoDenied} />
@@ -411,7 +431,7 @@ function App() {
 
       <window.WatchTab count={allWatchedEntities.length} liveCount={liveWatchedCount} onOpen={() => setLedgerOpen(true)} />
 
-      <window.Console t={t} day={day} onDay={setDay}
+      <window.Console t={t} day={day} onDay={setDay} days={activeDays}
         onScrub={onScrub} onScrubEnd={onScrubEnd} dragRef={dragRef}
         throttleLabel={currentMode.throttleLabel} />
 
@@ -421,19 +441,21 @@ function App() {
           onWatch={toggleWatch} onGuide={startNav} />
       )}
 
-      {cardEntity && mode === "events" && window.EventCard && (
-        <window.EventCard entity={cardEntity} t={t} day={day} watched={watched} userPos={userPos}
+      {cardEntity && mode !== "food" && window.EventCard && (
+        <window.EventCard entity={cardEntity} t={t} day={day} days={activeDays} watched={watched} userPos={userPos}
           onClose={() => { setCardId(null); setSelectedId(null); }}
           onWatch={toggleWatch} onGuide={startNav} />
       )}
 
-      <window.AlertsLedger open={ledgerOpen} watched={watched} day={day} t={t}
+      <window.AlertsLedger open={ledgerOpen} watched={watched}
+        day={mode === "festival" ? 0 : day} t={t}
         mode={mode} userPos={userPos} onClose={() => setLedgerOpen(false)}
         onPick={(id) => {
           setLedgerOpen(false);
           const isTruck = (window.TRUCKS || []).some(tr => tr.id === id);
-          const targetMode = isTruck ? "food" : "events";
-          if (targetMode !== mode) { setMode(targetMode); setCraving(0); setModeMenuOpen(false); }
+          const isFest  = (window.FESTIVAL || []).some(ev => ev.id === id);
+          const targetMode = isTruck ? "food" : isFest ? "festival" : "events";
+          if (targetMode !== mode) { setMode(targetMode); setCraving(0); setDay(0); setRange(rimOf(targetMode)); setModeMenuOpen(false); }
           onTapBody(id);
         }}
         onWatch={toggleWatch} />
