@@ -409,7 +409,7 @@ function App() {
       <window.Field t={t} day={day} fieldR={fieldR} cx={fieldCx} cy={fieldCy}
         matchOf={matchOf} shape={tweaks.emblem} selectedId={selectedId} watched={watched}
         onTapBody={onTapBody} onTapField={() => { setSelectedId(null); setModeMenuOpen(false); }}
-        speed={tweaks.speed} now={now} trucks={entities} days={activeDays} rim={activeRim}
+        speed={tweaks.speed} now={now} trucks={entities} days={activeDays} rim={activeRim} mode={mode}
         heading={heading} onHeading={setHeading} range={range} onRange={setRange}
         navId={navId} navProgress={navProgress} userPos={userPos} onFlick={onFlick}
         spinning={spinning} compassLive={compassLive} onTapHub={activateLive} geoDenied={geoDenied} />

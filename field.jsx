@@ -7,7 +7,7 @@ const DIAL_FLICK_THRESHOLD = 0.08;  // deg/ms  — minimum release speed to trig
 const DIAL_MAX_VEL         = 0.40;  // deg/ms  — cap: hard flick stays playful, not wild
 const DIAL_STALE_MS        = 100;   // ms      — ignore velocity if pointer was idle before release
 
-function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, onTap, speed, ahead, homing, approach }) {
+function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, onTap, speed, ahead, homing, approach, mode }) {
   const D = window.DYNAMO;
   const DGlyph = window.DGlyph;
   const live = power;
@@ -16,13 +16,19 @@ function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, o
   const energized = on && matched;
   const dim = !matched || !on;
 
+  // FESTIVAL-only glyph type tint (a neutral channel; the CSS applies it ONLY on a non-live,
+  // non-facing ghost). Derived from the normalized category tag (music/food/market). EVENTS/
+  // FOOD get no type-* class → byte-identical render.
+  const typeClass = mode === "festival" ? " type-" + (truck.cravings && truck.cravings[0] || "") : "";
+
   const cls = "emblem shape-" + shape
     + (energized ? " energized" : on ? " on" : " off")
     + (dim ? " dim" : "")
     // `ahead` is already facing-AND-live-now (real clock); gate only on lens `matched`,
     // NOT scrubbed `!dim`, so the pulse tracks the real clock independent of the scrub.
     + (ahead && matched ? " ahead" : "")
-    + (homing ? " homing" : "");
+    + (homing ? " homing" : "")
+    + typeClass;
 
   return (
     <button className={cls} style={{
@@ -59,7 +65,7 @@ function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, o
 }
 
 function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, onTapBody, onTapField,
-                 speed, now, trucks, days, rim, heading, onHeading, range, onRange, navId, navProgress, userPos,
+                 speed, now, trucks, days, rim, mode, heading, onHeading, range, onRange, navId, navProgress, userPos,
                  onFlick, spinning, compassLive, onTapHub, geoDenied }) {
   const D = window.DYNAMO;
   const list = trucks || window.TRUCKS;
@@ -284,7 +290,7 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
         const ahead = Math.abs(((angDeg + 90) % 360 + 360) % 360 - 0) < 22 || Math.abs(((angDeg+90)%360+360)%360 - 360) < 22;
         const isNav = pl.truck.id === navId;
         return <Emblem key={pl.truck.id} truck={pl.truck} t={t} pos={{x:pl.x,y:pl.y,r:pl.r}} size={pl.size}
-          power={pl.power} match={pl.match} shape={shape}
+          power={pl.power} match={pl.match} shape={shape} mode={mode}
           selected={selectedId===pl.truck.id} watched={watched.has(pl.truck.id)}
           onTap={onTapBody} speed={speed} now={now}
           ahead={ahead && pl.liveNow} homing={isNav} approach={isNav?navProgress:0} />;

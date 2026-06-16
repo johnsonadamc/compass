@@ -34,6 +34,12 @@
     --on-ink: #ece3cf;   /* text drawn ON ink surfaces */
     --panel: #1c1813;    /* console machine-panel surface */
     --panel-text: #ece3cf;
+    /* FESTIVAL type tint — a glyph-only channel (see .emblem.type-* rules). Hues are kept
+       clear of --verm (red-orange) and --blue (cyan) so a type colour is never mistaken for
+       a state colour. Defined on the base palette; inherited by pal-noir/pal-blueprint. */
+    --fest-music:  #79BE6A;   /* green  ~108° */
+    --fest-food:   #E3B340;   /* amber  ~44°  */
+    --fest-market: #AE83D2;   /* violet ~272° */
     position: relative; overflow: hidden;
     width: 100%; height: 100%;
     background: var(--paper); color: var(--ink);
@@ -269,6 +275,15 @@
     background: var(--verm); color: var(--paper); border-color: var(--ink);
     box-shadow: 0 0 0 2px var(--paper), 0 0 0 3px var(--verm), 0 4px 12px rgba(0,0,0,0.25);
   }
+  /* FESTIVAL type tint — glyph-only, neutral channel. STATE ALWAYS WINS: applies only to a
+     closed/ghost (.off) emblem that is not facing-live (:not(.ahead)). Any lit state
+     (.on / .energized = verm) is a different, mutually-exclusive class and keeps its
+     state-driven glyph colour, so the live flare is byte-identical; the blue facing ping
+     also overrides. Festival-gated in field.jsx (only festival emblems get a .type-* class),
+     so EVENTS/FOOD render unchanged. */
+  .emblem.type-music.off:not(.ahead)  .emblem-face { color: var(--fest-music); }
+  .emblem.type-food.off:not(.ahead)   .emblem-face { color: var(--fest-food); }
+  .emblem.type-market.off:not(.ahead) .emblem-face { color: var(--fest-market); }
   .emblem-rays { position: absolute; pointer-events: none; opacity: 0.75; }
   .emblem-rays line { stroke: var(--verm); }
   /* "ahead" — truck in your facing direction pulses gently */
