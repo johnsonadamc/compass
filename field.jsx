@@ -142,7 +142,7 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
   // ---- placement: gather → fan co-located clusters (angular, radius-preserved) → rotate → declump ----
   const uLat = userPos?.lat, uLng = userPos?.lng;
   // Phase 1 — gather each entity's TRUE dial-space polar (baseAng, r); defer rotation + x/y.
-  const placed = list.map((truck) => {
+  let placed = list.map((truck) => {
     const plan = D.planFor(truck, day, uLat, uLng, DAYSET); if (!plan) return null;
     let dist = plan.dist;
     if (truck.id === navId) dist = dist * (1 - navProgress * 0.93);
@@ -168,6 +168,43 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
   const FAN_MIN_STEP = 8 * Math.PI / 180;     // rad — floor so far-out clusters still visibly split
   const FAN_MAX_TOTAL = 110 * Math.PI / 180;  // rad — cap on total spread (denser clusters pack tighter)
   const ptOf = (pl) => { const a = pl.baseAng * Math.PI/180; return { x: Math.cos(a)*pl.r, y: Math.sin(a)*pl.r }; };
+
+  // ---- FESTIVAL music-cluster time-collapse (render-layer only; runs BEFORE the fan) ----
+  // At a shared music venue, only ONE act is relevant at the current scrub time t. Among
+  // co-located MUSIC entities (same dial position, same festival day — placed already only
+  // holds entities scheduled today), keep just one and drop the rest, so the cluster of 1
+  // never fans: the act whose window [open,close) contains t (the current set), else the
+  // next act starting later today (a dim ghost — before doors / changeover gaps), else
+  // nothing (after the last set). This is pure SELECTION: the survivor renders with its
+  // normal state treatment (lit/verm/ping if live per the real-clock rule; off-ghost +
+  // type tint otherwise) — no engine/schedule/live-status touch, no new CSS. Markets and
+  // food are NOT music → never collapsed (they keep the fan). Single-act music venues
+  // (group of 1) are untouched. navId is never dropped (an active Guide Me keeps its needle).
+  if (mode === "festival") {
+    const typeOf = (pl) => pl.truck.cravings && pl.truck.cravings[0];   // "music" | "food" | "market"
+    const winHas = (pl) => pl.plan.open <= t && t < pl.plan.close;      // half-open: no double-show at set boundaries
+    const music = placed.filter((pl) => typeOf(pl) === "music" && pl.truck.id !== navId);
+    const drop = new Set();
+    const claimed = new Array(music.length).fill(false);
+    for (let i = 0; i < music.length; i++) {
+      if (claimed[i]) continue;
+      const grp = [music[i]]; const pi = ptOf(music[i]); claimed[i] = true;
+      for (let j = i + 1; j < music.length; j++) {
+        if (claimed[j]) continue;
+        const pj = ptOf(music[j]);
+        if (Math.hypot(pj.x - pi.x, pj.y - pi.y) < (music[i].size + music[j].size) / 2 + FAN_PAD) { grp.push(music[j]); claimed[j] = true; }
+      }
+      if (grp.length < 2) continue;                                     // single-act venue → unaffected
+      const inWin = grp.filter(winHas);
+      let keepId = null;
+      if (inWin.length) keepId = inWin.reduce((a, b) => b.plan.open > a.plan.open ? b : a).truck.id;        // current set (latest-started)
+      else { const up = grp.filter((pl) => pl.plan.open > t);
+             if (up.length) keepId = up.reduce((a, b) => b.plan.open < a.plan.open ? b : a).truck.id; }     // next set up (earliest)
+      for (const pl of grp) if (pl.truck.id !== keepId) drop.add(pl.truck.id);   // keepId null → drop the whole cluster
+    }
+    if (drop.size) placed = placed.filter((pl) => !drop.has(pl.truck.id));
+  }
+
   const fannable = placed.filter(pl => pl.truck.id !== navId);
   const clustered = new Array(fannable.length).fill(false);
   for (let i = 0; i < fannable.length; i++) {
