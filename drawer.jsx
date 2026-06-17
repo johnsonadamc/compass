@@ -22,7 +22,10 @@ function resolveWatched(watched) {
   const festItems = (window.FESTIVAL || [])
     .filter(ev => watched.has(ev.id))
     .map(D.eventToEntity);
-  return { foodItems, eventItems, festItems };
+  const nmItems = (window.NIGHTMOVES || [])
+    .filter(ev => watched.has(ev.id))
+    .map(D.eventToEntity);
+  return { foodItems, eventItems, festItems, nmItems };
 }
 
 function HappeningNow({ items, t, userPos, onPick, onWatch }) {
@@ -126,18 +129,19 @@ function ModeGroup({ label, items, day, t, userPos, onPick, onWatch }) {
 function AlertsLedger({ open, watched, day, t, mode, userPos, onClose, onPick, onWatch }) {
   if (!open) return null;
   const { sheetRef, dragStyle, gripHandlers } = window.useSwipeDismiss(onClose);
-  const { foodItems, eventItems, festItems } = resolveWatched(watched);
-  const allItems = [...foodItems, ...eventItems, ...festItems];
+  const { foodItems, eventItems, festItems, nmItems } = resolveWatched(watched);
+  const allItems = [...foodItems, ...eventItems, ...festItems, ...nmItems];
   const totalCount = allItems.length;
 
-  // Group by vertical, current mode's group first. `day` arrives already in the DAYS frame
-  // (app passes 0 in FESTIVAL mode), so the cross-mode upcoming list stays today-anchored.
-  const groupsById = { food:   { label:"FOOD",     items: foodItems },
-                       events: { label:"EVENTS",   items: eventItems },
-                       festival:{ label:"FESTIVAL", items: festItems } };
-  const order = mode === "food"     ? ["food","events","festival"]
-              : mode === "festival" ? ["festival","food","events"]
-              :                       ["events","food","festival"];
+  // Group by vertical, current mode's group first then the rest in canonical order. `day`
+  // arrives already in the DAYS frame (app passes 0 in any festival mode), so the cross-mode
+  // upcoming list stays today-anchored.
+  const groupsById = { food:      { label:"FOOD",       items: foodItems },
+                       events:    { label:"EVENTS",     items: eventItems },
+                       festival:  { label:"FESTIVAL",   items: festItems },
+                       nightmoves:{ label:"NIGHTMOVES", items: nmItems } };
+  const canonical = ["events", "food", "festival", "nightmoves"];
+  const order = [mode, ...canonical.filter(id => id !== mode)].filter(id => groupsById[id]);
   const groups = order.map(id => groupsById[id]);
 
   return (

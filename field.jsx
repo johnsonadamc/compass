@@ -7,7 +7,7 @@ const DIAL_FLICK_THRESHOLD = 0.08;  // deg/ms  — minimum release speed to trig
 const DIAL_MAX_VEL         = 0.40;  // deg/ms  — cap: hard flick stays playful, not wild
 const DIAL_STALE_MS        = 100;   // ms      — ignore velocity if pointer was idle before release
 
-function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, onTap, speed, ahead, homing, approach, mode }) {
+function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, onTap, speed, ahead, homing, approach, festival }) {
   const D = window.DYNAMO;
   const DGlyph = window.DGlyph;
   const live = power;
@@ -16,10 +16,11 @@ function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, o
   const energized = on && matched;
   const dim = !matched || !on;
 
-  // FESTIVAL-only glyph type tint (a neutral channel; the CSS applies it ONLY on a non-live,
-  // non-facing ghost). Derived from the normalized category tag (music/food/market). EVENTS/
-  // FOOD get no type-* class → byte-identical render.
-  const typeClass = mode === "festival" ? " type-" + (truck.cravings && truck.cravings[0] || "") : "";
+  // Festival-mode glyph type tint (a neutral channel; the CSS applies it ONLY on a non-live,
+  // non-facing ghost). Derived from the normalized category tag (music/food/market). Gated on
+  // the `festival` flag so BOTH festival modes (STATIC + NIGHTMOVES) tint; EVENTS/FOOD get no
+  // type-* class → byte-identical render.
+  const typeClass = festival ? " type-" + (truck.cravings && truck.cravings[0] || "") : "";
 
   const cls = "emblem shape-" + shape
     + (energized ? " energized" : on ? " on" : " off")
@@ -65,7 +66,7 @@ function Emblem({ truck, t, pos, size, power, match, shape, selected, watched, o
 }
 
 function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, onTapBody, onTapField,
-                 speed, now, trucks, days, rim, mode, heading, onHeading, range, onRange, navId, navProgress, userPos,
+                 speed, now, trucks, days, rim, festival, anchorLabel, heading, onHeading, range, onRange, navId, navProgress, userPos,
                  onFlick, spinning, compassLive, onTapHub, geoDenied }) {
   const D = window.DYNAMO;
   const list = trucks || window.TRUCKS;
@@ -180,7 +181,7 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
   // type tint otherwise) — no engine/schedule/live-status touch, no new CSS. Markets and
   // food are NOT music → never collapsed (they keep the fan). Single-act music venues
   // (group of 1) are untouched. navId is never dropped (an active Guide Me keeps its needle).
-  if (mode === "festival") {
+  if (festival) {
     const typeOf = (pl) => pl.truck.cravings && pl.truck.cravings[0];   // "music" | "food" | "market"
     const winHas = (pl) => pl.plan.open <= t && t < pl.plan.close;      // half-open: no double-show at set boundaries
     const music = placed.filter((pl) => typeOf(pl) === "music" && pl.truck.id !== navId);
@@ -313,7 +314,7 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
         </svg>
         {userPos
           ? <div className="hub-label">YOU</div>
-          : <div className="hub-label hub-label-anchor">{window.CITIES[window.DEFAULT_CITY].hubLabel}</div>}
+          : <div className="hub-label hub-label-anchor">{anchorLabel || window.CITIES[window.DEFAULT_CITY].hubLabel}</div>}
         {!userPos &&
           // denied/unavailable → quiet note (not a silent failure); a tap retries the request.
           // Once located, the compass chip's own blue pulse signals the "go live" step (no center hint).
@@ -327,7 +328,7 @@ function Field({ t, day, fieldR, cx, cy, matchOf, shape, selectedId, watched, on
         const ahead = Math.abs(((angDeg + 90) % 360 + 360) % 360 - 0) < 22 || Math.abs(((angDeg+90)%360+360)%360 - 360) < 22;
         const isNav = pl.truck.id === navId;
         return <Emblem key={pl.truck.id} truck={pl.truck} t={t} pos={{x:pl.x,y:pl.y,r:pl.r}} size={pl.size}
-          power={pl.power} match={pl.match} shape={shape} mode={mode}
+          power={pl.power} match={pl.match} shape={shape} festival={festival}
           selected={selectedId===pl.truck.id} watched={watched.has(pl.truck.id)}
           onTap={onTapBody} speed={speed} now={now}
           ahead={ahead && pl.liveNow} homing={isNav} approach={isNav?navProgress:0} />;

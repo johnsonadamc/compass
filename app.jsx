@@ -9,7 +9,13 @@ const MODES = [
   // FESTIVAL is a bounded demo vertical (see data.jsx STATIC). rimMi overrides the global
   // DEFAULT_RIM_MI so the tight downtown venue cluster reads at ~1 mi; modes without rimMi
   // fall back to 5 mi. EVENTS stays MODES[0] (default landing + dropdown order unchanged).
-  { id: "festival", label: "FESTIVAL", sub: "SET THE TIME. FIND THE SET.",  throttleLabel: "SET TIME", rimMi: 1.0 },
+  // `festival: true` is the GATE flag (not a data selector): both festival modes inherit the
+  // glyph type-tint + the music time-collapse from it, so a future festival mode = one flag.
+  { id: "festival",  label: "FESTIVAL",  sub: "SET THE TIME. FIND THE SET.", throttleLabel: "SET TIME", rimMi: 1.0, festival: true },
+  // NIGHTMOVES — real single-grounds, single-day festival (Night Moves, Maritime Park). Tight
+  // 0.25 mi rim; cityKey points the GPS-off anchor/hub-label at the festival grounds (not
+  // downtown). festival: true → tint + collapse inherited.
+  { id: "nightmoves", label: "NIGHTMOVES", sub: "SET THE TIME. FIND THE SET.", throttleLabel: "SET TIME", rimMi: 0.25, festival: true, cityKey: "nightmoves" },
 ];
 
 function App() {
@@ -65,16 +71,21 @@ function App() {
   // mode-derived data — computed once per mode change. FESTIVAL entities are EVENTS-shaped,
   // so the same eventToEntity normalizer absorbs them with no engine branch.
   const entities = useMemo(() =>
-    mode === "food"     ? window.TRUCKS :
-    mode === "festival" ? window.FESTIVAL.map(D.eventToEntity) :
-                          window.EVENTS.map(D.eventToEntity),
+    mode === "food"       ? window.TRUCKS :
+    mode === "festival"   ? window.FESTIVAL.map(D.eventToEntity) :
+    mode === "nightmoves" ? window.NIGHTMOVES.map(D.eventToEntity) :
+                            window.EVENTS.map(D.eventToEntity),
   [mode]);
-  const activeCategories = mode === "food"     ? window.CRAVINGS :
-                           mode === "festival" ? window.FESTIVAL_CATEGORIES :
-                                                 window.EVENT_CATEGORIES;
-  // Per-mode day frame: FESTIVAL has its own computed Fri/Sat/Sun set; FOOD/EVENTS use the
-  // rolling-7 DAYS. Threaded into the day-dial, Field, the card, and the engine helpers.
-  const activeDays = mode === "festival" ? D.FESTIVAL_DAYS : window.DAYS;
+  const activeCategories = mode === "food"       ? window.CRAVINGS :
+                           mode === "festival"   ? window.FESTIVAL_CATEGORIES :
+                           mode === "nightmoves" ? window.NIGHTMOVES_CATEGORIES :
+                                                   window.EVENT_CATEGORIES;
+  // Per-mode day frame: FESTIVAL has its 3-day Fri/Sat/Sun set, NIGHTMOVES its single fixed
+  // festival day; FOOD/EVENTS use the rolling-7 DAYS. Threaded into the day-dial, Field, the
+  // card, and the engine helpers.
+  const activeDays = mode === "festival"   ? D.FESTIVAL_DAYS :
+                     mode === "nightmoves" ? D.NIGHTMOVES_DAYS :
+                                             window.DAYS;
 
   // Snap points: all window start/end times across all entities. windowTimes (data.jsx)
   // reads the schedule model so app.jsx stays ignorant of occurrences/recurrence shape.
@@ -110,6 +121,13 @@ function App() {
 
   const currentMode = MODES.find(m => m.id === mode) || MODES[0];
   const activeRim = currentMode.rimMi ?? D.DEFAULT_RIM_MI;
+  // Festival-type gate (drives the tint + music-collapse + ledger day-frame for ALL festival
+  // modes via one flag — no brittle string check). Anchor label + the static single-day label
+  // are per-mode config: NIGHTMOVES points at the festival grounds; others stay downtown / use
+  // the day-dial.
+  const isFestival = !!currentMode.festival;
+  const activeAnchorLabel = window.CITIES[currentMode.cityKey || window.DEFAULT_CITY].hubLabel;
+  const dateLabel = mode === "nightmoves" ? D.NIGHTMOVES_DAYS[0].label : null;
 
   // Geolocation and compass are activated together by a user tap on the YOU hub (see activateLive).
   // Auto-requesting on mount was unreliable on mobile (permission prompt often silently dropped).
@@ -355,7 +373,8 @@ function App() {
     const trucks = (window.TRUCKS || []).filter(tr => watched.has(tr.id));
     const events = (window.EVENTS || []).filter(ev => watched.has(ev.id)).map(D.eventToEntity);
     const fest   = (window.FESTIVAL || []).filter(ev => watched.has(ev.id)).map(D.eventToEntity);
-    return [...trucks, ...events, ...fest];
+    const nm     = (window.NIGHTMOVES || []).filter(ev => watched.has(ev.id)).map(D.eventToEntity);
+    return [...trucks, ...events, ...fest, ...nm];
   }, [watched]);
   const liveWatchedCount = allWatchedEntities.filter(e => D.powerAt(e, D.realNowHour, 0) > 0.5).length;
 
@@ -409,7 +428,8 @@ function App() {
       <window.Field t={t} day={day} fieldR={fieldR} cx={fieldCx} cy={fieldCy}
         matchOf={matchOf} shape={tweaks.emblem} selectedId={selectedId} watched={watched}
         onTapBody={onTapBody} onTapField={() => { setSelectedId(null); setModeMenuOpen(false); }}
-        speed={tweaks.speed} now={now} trucks={entities} days={activeDays} rim={activeRim} mode={mode}
+        speed={tweaks.speed} now={now} trucks={entities} days={activeDays} rim={activeRim}
+        festival={isFestival} anchorLabel={activeAnchorLabel}
         heading={heading} onHeading={setHeading} range={range} onRange={setRange}
         navId={navId} navProgress={navProgress} userPos={userPos} onFlick={onFlick}
         spinning={spinning} compassLive={compassLive} onTapHub={activateLive} geoDenied={geoDenied} />
@@ -431,7 +451,7 @@ function App() {
 
       <window.WatchTab count={allWatchedEntities.length} liveCount={liveWatchedCount} onOpen={() => setLedgerOpen(true)} />
 
-      <window.Console t={t} day={day} onDay={setDay} days={activeDays}
+      <window.Console t={t} day={day} onDay={setDay} days={activeDays} dateLabel={dateLabel}
         onScrub={onScrub} onScrubEnd={onScrubEnd} dragRef={dragRef}
         throttleLabel={currentMode.throttleLabel} />
 
@@ -448,13 +468,14 @@ function App() {
       )}
 
       <window.AlertsLedger open={ledgerOpen} watched={watched}
-        day={mode === "festival" ? 0 : day} t={t}
+        day={isFestival ? 0 : day} t={t}
         mode={mode} userPos={userPos} onClose={() => setLedgerOpen(false)}
         onPick={(id) => {
           setLedgerOpen(false);
           const isTruck = (window.TRUCKS || []).some(tr => tr.id === id);
           const isFest  = (window.FESTIVAL || []).some(ev => ev.id === id);
-          const targetMode = isTruck ? "food" : isFest ? "festival" : "events";
+          const isNm    = (window.NIGHTMOVES || []).some(ev => ev.id === id);
+          const targetMode = isTruck ? "food" : isFest ? "festival" : isNm ? "nightmoves" : "events";
           if (targetMode !== mode) { setMode(targetMode); setCraving(0); setDay(0); setRange(rimOf(targetMode)); setModeMenuOpen(false); }
           onTapBody(id);
         }}

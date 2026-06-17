@@ -137,10 +137,23 @@ function LensStrip({ craving, onCraving, categories }) {
   );
 }
 
+/* STATIC DAY — single fixed festival day (NIGHTMOVES): no selector, just the date.
+   Renders in the day-dial's slot when a dateLabel is supplied. */
+function StaticDay({ label }) {
+  return (
+    <div className="daydial">
+      <div className="daydial-eyebrow">FESTIVAL&nbsp;DAY</div>
+      <div className="daydial-date">{label}</div>
+    </div>
+  );
+}
+
 function ConsolePanel(props) {
   return (
     <div className="console">
-      <DayDial day={props.day} onDay={props.onDay} days={props.days} />
+      {props.dateLabel
+        ? <StaticDay label={props.dateLabel} />
+        : <DayDial day={props.day} onDay={props.onDay} days={props.days} />}
       <div className="console-rule" />
       <Throttle t={props.t} onScrub={props.onScrub} onScrubEnd={props.onScrubEnd} dragRef={props.dragRef} label={props.throttleLabel} />
     </div>

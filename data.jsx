@@ -45,6 +45,10 @@ const isoOf = (dt) => `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,
 
 // WEEKDAYS is indexed by Date.getDay() (0=Sun … 6=Sat) — matches recurrence weekdays.
 const WEEKDAYS = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+// Full names for the NIGHTMOVES static date label (e.g. "SATURDAY, JUN 20"). Built from
+// LOCAL getters on the computed Date — NOT toLocaleDateString (which is locale/TZ-dependent).
+const FULL_WEEKDAYS = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
+const MONTHS_ABBR = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 
 /* ---- CITY CONFIG ----
    Each city supplies a label and a center lat/lng used as:
@@ -56,6 +60,16 @@ const CITIES = {
     label: "Pensacola, FL",
     hubLabel: "GARDEN & PALAFOX",
     center: { lat: 30.4097, lng: -87.2169 },
+    timezone: "America/Chicago",
+  },
+  // Per-mode anchor for OFFLINE//NIGHTMOVES — the festival GROUNDS (Hunter Amphitheater /
+  // Maritime Park), not downtown. Used as the GPS-off fallback origin for the dial and the
+  // hub label; with real GPS the dial still centers on the user (planFor recomputes from
+  // their position). Same Central timezone as the city, so the date/clock machinery is shared.
+  nightmoves: {
+    label: "Night Moves · Maritime Park",
+    hubLabel: "MARITIME PARK",
+    center: { lat: 30.402925442829346, lng: -87.21825896737549 },
     timezone: "America/Chicago",
   },
 };
@@ -126,6 +140,24 @@ const FESTIVAL_DAYS = Array.from({ length: 3 }, (_, i) => {
   return { idx: i, key: today ? "TODAY" : WEEKDAYS[wd], weekday: WEEKDAYS[wd],
            date: dt.getDate(), iso, wd, today };
 });
+
+// ---- NIGHTMOVES day (single fixed festival day; no day-dial) ----
+// Night Moves is a one-day festival. The day is LOCKED (no selector); the engine still needs
+// an internal day, so NIGHTMOVES_DAYS is a 1-entry array indexed by the locked day=0. It is
+// the upcoming Saturday (including today if today is Saturday), computed LIVE so the demo
+// never expires. Same shape/`today` semantics as DAYS/FESTIVAL_DAYS — so planFor + the
+// live-status rule (isLiveNow keys off `today`) work unchanged: acts light live ONLY when
+// real-today IS this Saturday, neutral/scheduled otherwise. `label` is the static UI string.
+const NM_SAT_OFFSET = (6 - cityNow.weekday + 7) % 7;   // Sat→0 (today), Sun→+6, Wed→+3 …
+const NIGHTMOVES_DAYS = [(() => {
+  const dt = new Date(cityNow.year, cityNow.month - 1, cityNow.day + NM_SAT_OFFSET);
+  const wd = dt.getDay();
+  const iso = isoOf(dt);
+  const today = iso === FEST_TODAY_ISO;
+  return { idx: 0, key: today ? "TODAY" : WEEKDAYS[wd], weekday: WEEKDAYS[wd],
+           date: dt.getDate(), iso, wd, today,
+           label: `${FULL_WEEKDAYS[wd]}, ${MONTHS_ABBR[dt.getMonth()]} ${dt.getDate()}` };
+})()];
 
 /* ---- GEO MATH ----
    Haversine + bearing: convert real lat/lng pairs to distance (miles) and
@@ -676,6 +708,125 @@ const FESTIVAL = [
     location: fGeo(...FV_HUNTER), occurrences: fOccAll(17, 22) },
 ];
 
+// ---- NIGHTMOVES vertical (Night Moves Music Festival — bounded single-grounds demo) ----
+// REAL festival content (NOT dummy data): real acts, real food/drink/vendor names, and REAL
+// site geography (coords geocoded from the Maritime Park / Hunter Amphitheater site map).
+// Single-grounds, single-day festival — everything sits within ~0.08 mi of the grounds anchor,
+// so the mode runs a tight 0.25 mi rim. Fallback bearing/dist are derived from the FESTIVAL
+// GROUNDS anchor (nmGeo) — not downtown — so the GPS-off dial reads right; with YOU active,
+// planFor recomputes from the user's real position (on-site, the dial points from where they
+// stand). The single festival day is computed LIVE (NIGHTMOVES_DAYS → the upcoming Saturday),
+// and nmOcc injects that ISO into every occurrence so the demo never expires. Music acts share
+// each stage's coords (the music-collapse shows one act per stage at the scrub time); the two
+// stages sit on opposite sides (E vs W) so the live act ping-pongs as you scrub. Food/drink
+// cluster at the food court, vendors at the vendor field (the co-location fan spreads each).
+const NM_ANCHOR = CITIES.nightmoves.center;
+const nmGeo = (lat, lng) => ({ bearing: geoBearing(NM_ANCHOR.lat, NM_ANCHOR.lng, lat, lng),
+                               dist:    haversineMi(NM_ANCHOR.lat, NM_ANCHOR.lng, lat, lng),
+                               latLng:  { lat, lng } });
+// Real zone coordinates (user-provided, geocoded from the site map).
+const NM_MAIN      = [30.403123791508083, -87.21736916633455];  // Main Stage (Hunter Amphitheater), E
+const NM_DISCOVERY = [30.402621795891573, -87.21950345441736];  // Discovery Stage, W
+const NM_FOOD      = [30.403426811287847, -87.21895080392181];  // Food court (zone 7), NW
+const NM_VENDOR    = [30.402826581139315, -87.21888939831118];  // Vendor field (zone 10), W
+const NM_ISO = NIGHTMOVES_DAYS[0].iso;                           // the computed festival-Saturday ISO
+const nmOcc = (start, end) => [{ date: NM_ISO, start, end }];    // single fixed festival day
+
+const NIGHTMOVES_CATEGORIES = [
+  { id:"all",    label:"ALL",          glyph:"all",     tag:null },
+  { id:"music",  label:"Music",        glyph:"music",   tag:"music" },
+  { id:"food",   label:"Food & Drink", glyph:"burgers", tag:"food" },
+  { id:"market", label:"Market",       glyph:"markets", tag:"market" },
+];
+
+const NIGHTMOVES = [
+  // ===== MUSIC · Main Stage (E, 76°) — 6 acts, sequential sets, shared coords =====
+  { id:"nm-mus-ben-loftin", name:"Ben Loftin", venue:"Main Stage", category:"music", glyph:"music",
+    blurb:"Opening the Main Stage.", price:"Festival pass",
+    location: nmGeo(...NM_MAIN), occurrences: nmOcc(15.75, 16.25) },
+  { id:"nm-mus-wishy", name:"Wishy", venue:"Main Stage", category:"music", glyph:"music",
+    blurb:"Live on the Main Stage.", price:"Festival pass",
+    location: nmGeo(...NM_MAIN), occurrences: nmOcc(16.583, 17.166) },
+  { id:"nm-mus-origami-angel", name:"Origami Angel", venue:"Main Stage", category:"music", glyph:"music",
+    blurb:"Live on the Main Stage.", price:"Festival pass",
+    location: nmGeo(...NM_MAIN), occurrences: nmOcc(17.583, 18.333) },
+  { id:"nm-mus-joyce-manor", name:"Joyce Manor", venue:"Main Stage", category:"music", glyph:"music",
+    blurb:"Live on the Main Stage.", price:"Festival pass",
+    location: nmGeo(...NM_MAIN), occurrences: nmOcc(18.75, 19.583) },
+  { id:"nm-mus-dashboard-confessional", name:"Dashboard Confessional", venue:"Main Stage", category:"music", glyph:"music",
+    blurb:"Live on the Main Stage.", price:"Festival pass",
+    location: nmGeo(...NM_MAIN), occurrences: nmOcc(20.083, 21.083) },
+  { id:"nm-mus-japanese-breakfast", name:"Japanese Breakfast", venue:"Main Stage", category:"music", glyph:"music",
+    blurb:"Headliner — closing the Main Stage.", price:"Festival pass",
+    location: nmGeo(...NM_MAIN), occurrences: nmOcc(21.75, 23.25) },
+
+  // ===== MUSIC · Discovery Stage (W, 254°) — 5 acts, fill the Main-stage gaps =====
+  { id:"nm-mus-marigolds-apprentice", name:"Marigold's Apprentice", venue:"Discovery Stage", category:"music", glyph:"music",
+    blurb:"Opening the Discovery Stage.", price:"Festival pass",
+    location: nmGeo(...NM_DISCOVERY), occurrences: nmOcc(16.25, 16.583) },
+  { id:"nm-mus-lights-with-fire", name:"Lights with Fire", venue:"Discovery Stage", category:"music", glyph:"music",
+    blurb:"Live on the Discovery Stage.", price:"Festival pass",
+    location: nmGeo(...NM_DISCOVERY), occurrences: nmOcc(17.166, 17.583) },
+  { id:"nm-mus-kate-dineen", name:"Kate Dineen", venue:"Discovery Stage", category:"music", glyph:"music",
+    blurb:"Live on the Discovery Stage.", price:"Festival pass",
+    location: nmGeo(...NM_DISCOVERY), occurrences: nmOcc(18.333, 18.75) },
+  { id:"nm-mus-ego-death", name:"Ego Death", venue:"Discovery Stage", category:"music", glyph:"music",
+    blurb:"Live on the Discovery Stage.", price:"Festival pass",
+    location: nmGeo(...NM_DISCOVERY), occurrences: nmOcc(19.583, 20.083) },
+  { id:"nm-mus-mspaint", name:"MSPAINT", venue:"Discovery Stage", category:"music", glyph:"music",
+    blurb:"Closing the Discovery Stage.", price:"Festival pass",
+    location: nmGeo(...NM_DISCOVERY), occurrences: nmOcc(21.083, 21.75) },
+
+  // ===== FOOD & DRINK (8) · Food court (NW) — shared coords, staggered closes =====
+  { id:"nm-fd-pcola-rolla", name:"Pcola Rolla", venue:"Food Court", category:"food", glyph:"burgers",
+    blurb:"Festival food vendor.", price:"$$",
+    location: nmGeo(...NM_FOOD), occurrences: nmOcc(15.0, 22.0) },
+  { id:"nm-fd-greeks-catering", name:"Greeks Catering", venue:"Food Court", category:"food", glyph:"burgers",
+    blurb:"Festival food vendor.", price:"$$",
+    location: nmGeo(...NM_FOOD), occurrences: nmOcc(15.0, 21.5) },
+  { id:"nm-fd-pretty-baked", name:"Pretty Baked", venue:"Food Court", category:"food", glyph:"burgers",
+    blurb:"Festival food vendor.", price:"$$",
+    location: nmGeo(...NM_FOOD), occurrences: nmOcc(15.0, 22.5) },
+  { id:"nm-fd-birrieria-spot", name:"Birrieria Spot", venue:"Food Court", category:"food", glyph:"burgers",
+    blurb:"Festival food vendor.", price:"$$",
+    location: nmGeo(...NM_FOOD), occurrences: nmOcc(15.0, 22.0) },
+  { id:"nm-fd-parlor-doughnuts", name:"Parlor Doughnuts", venue:"Food Court", category:"food", glyph:"burgers",
+    blurb:"Festival food vendor.", price:"$$",
+    location: nmGeo(...NM_FOOD), occurrences: nmOcc(15.0, 21.75) },
+  { id:"nm-fd-the-handlebar", name:"The Handlebar", venue:"Food Court", category:"food", glyph:"burgers",
+    blurb:"Festival bar.", price:"$$",
+    location: nmGeo(...NM_FOOD), occurrences: nmOcc(15.0, 23.25) },
+  { id:"nm-fd-tame-coffee", name:"TAME Coffee", venue:"Food Court", category:"food", glyph:"burgers",
+    blurb:"Festival coffee bar.", price:"$$",
+    location: nmGeo(...NM_FOOD), occurrences: nmOcc(15.0, 23.0) },
+  { id:"nm-fd-fresh-squeezed-lemonade", name:"Fresh Squeezed Lemonade", venue:"Food Court", category:"food", glyph:"burgers",
+    blurb:"Festival drink stand.", price:"$",
+    location: nmGeo(...NM_FOOD), occurrences: nmOcc(15.0, 22.5) },
+
+  // ===== MARKET (7) · Vendor field (W) — IDENTICAL coords (the fan's stress test) =====
+  { id:"nm-mkt-perfect-day-bookstore", name:"Perfect Day Bookstore", venue:"Vendor Field", category:"market", glyph:"markets",
+    blurb:"Festival vendor.", price:"Free",
+    location: nmGeo(...NM_VENDOR), occurrences: nmOcc(15.0, 20.0) },
+  { id:"nm-mkt-fable-fashion-co", name:"Fable Fashion Co.", venue:"Vendor Field", category:"market", glyph:"markets",
+    blurb:"Festival vendor.", price:"Free",
+    location: nmGeo(...NM_VENDOR), occurrences: nmOcc(15.0, 19.75) },
+  { id:"nm-mkt-lucys-retro", name:"Lucy's Retro", venue:"Vendor Field", category:"market", glyph:"markets",
+    blurb:"Festival vendor.", price:"Free",
+    location: nmGeo(...NM_VENDOR), occurrences: nmOcc(15.0, 20.25) },
+  { id:"nm-mkt-grateful-glass", name:"Grateful Glass", venue:"Vendor Field", category:"market", glyph:"markets",
+    blurb:"Festival vendor.", price:"Free",
+    location: nmGeo(...NM_VENDOR), occurrences: nmOcc(15.0, 19.5) },
+  { id:"nm-mkt-a-campagna", name:"A Campagna", venue:"Vendor Field", category:"market", glyph:"markets",
+    blurb:"Festival vendor.", price:"Free",
+    location: nmGeo(...NM_VENDOR), occurrences: nmOcc(15.0, 20.0) },
+  { id:"nm-mkt-mother-truckin-hat-bar", name:"The Mother Truckin Hat Bar", venue:"Vendor Field", category:"market", glyph:"markets",
+    blurb:"Festival vendor.", price:"Free",
+    location: nmGeo(...NM_VENDOR), occurrences: nmOcc(15.0, 20.25) },
+  { id:"nm-mkt-scene-pensacola", name:"Scene Pensacola", venue:"Vendor Field", category:"market", glyph:"markets",
+    blurb:"Festival vendor.", price:"Free",
+    location: nmGeo(...NM_VENDOR), occurrences: nmOcc(15.0, 19.75) },
+];
+
 // Normalise an event into the shared entity interface so Field/DYNAMO helpers work
 // unchanged. Events and trucks now share the date-aware model, so recurrence/occurrences/
 // exceptions carry straight through; only the single `location` is wrapped into locations[].
@@ -700,7 +851,7 @@ window.DYNAMO = {
   fmtTime, fmtHourShort, fmtHM, clamp, lerp, smoothstep,
   compassDir, planFor, powerAt, statusAt, liveStatusAt, isLiveNow, bodyPos, walkMin, driveMin, travelEstimate, fmtMiles, upcomingWindows, windowTimes,
   eventToEntity, haversineMi, geoBearing, geoDestination,
-  todayHour, realNowHour, FESTIVAL_DAYS,
+  todayHour, realNowHour, FESTIVAL_DAYS, NIGHTMOVES_DAYS,
 };
 window.TRUCKS = TRUCKS;
 window.CRAVINGS = CRAVINGS;
@@ -709,5 +860,7 @@ window.EVENTS = EVENTS;
 window.EVENT_CATEGORIES = EVENT_CATEGORIES;
 window.FESTIVAL = FESTIVAL;
 window.FESTIVAL_CATEGORIES = FESTIVAL_CATEGORIES;
+window.NIGHTMOVES = NIGHTMOVES;
+window.NIGHTMOVES_CATEGORIES = NIGHTMOVES_CATEGORIES;
 window.CITIES = CITIES;
 window.DEFAULT_CITY = DEFAULT_CITY;
